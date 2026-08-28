@@ -252,8 +252,9 @@ td strong{white-space:nowrap}
     <a href="#s10"><span class="n">10</span><span class="t">How it is built</span><span class="d">For whoever is technical</span></a>
     <a href="#s11"><span class="n">11</span><span class="t">Asking it questions</span><span class="d">The Ask tab</span></a>
     <a href="#s12"><span class="n">12</span><span class="t">Making it do more</span><span class="d">Adding your own reports and tabs</span></a>
-    <a href="#s13"><span class="n">13</span><span class="t">What it costs to run</span><span class="d">And what it does not do</span></a>
-    <a href="#s14"><span class="n">14</span><span class="t">Every link in one place</span><span class="d">Index</span></a>
+    <a href="#s13"><span class="n">13</span><span class="t">Connecting the rest</span><span class="d">Stock, hours, and other systems</span></a>
+    <a href="#s14"><span class="n">14</span><span class="t">What it costs to run</span><span class="d">And what it does not do</span></a>
+    <a href="#s15"><span class="n">15</span><span class="t">Every link in one place</span><span class="d">Index</span></a>
   </div>
 </section>
 
@@ -628,6 +629,27 @@ npx wrangler d1 execute your-business-cc-db --remote --file=schema.sql</code></p
       <p>Cash, invoices, debtors and the profit and loss are unaffected, because Xero is live.</p>
     </div>
 
+    <div class="panel">
+      <div class="eyebrow">Or let it fetch them for you</div>
+      <h3>The browser option</h3>
+      <p>There is a way to skip the weekly job. A routine can open Tradify in your browser, run
+      both exports and upload them, on a schedule, without you doing anything.</p>
+      <p><strong>Why it needs a browser extension at all</strong> is worth understanding, because
+      it explains the whole limitation. Most software lets other programs ask it for data
+      directly. Tradify does not. So the only way in is the screen: something has to open the
+      page and click the buttons, exactly as a person would. That is what the extension is for.</p>
+      <p>To set it up: install the <strong>Claude in Chrome</strong> extension from the Chrome Web
+      Store, sign in to Tradify in that browser and tick remember me, then ask for the fetch
+      routine to be scheduled. It works on Chrome and Edge, on both Mac and Windows. Run it once
+      by hand and approve the permission prompts with "always allow", or an unattended run will
+      sit waiting for an approval nobody is there to give.</p>
+      <p><strong>The honest trade.</strong> It saves a minute a week and it will stop working
+      whenever your Tradify login expires, which happens. When it does it tells you, and you
+      upload by hand until somebody signs in again. It will never try to log in for you, and it
+      will never go looking for your password. The upload box on the dashboard keeps working
+      whatever happens here, so this can only ever save you effort, not cost you data.</p>
+    </div>
+
     <p class="cap">Tradify's own overview of getting your data out, including deleting it:
     <a href="https://help.tradifyhq.com/hc/en-us/articles/4402065079705-Exporting-Or-Deleting-Your-Data-From-Tradify">Exporting or deleting your data from Tradify</a>.
     Their Xero integration, which is what makes the live half work:
@@ -835,7 +857,7 @@ cc.sh get   /api/assistant-queue           what has been asked for</code></pre>
       on the dashboard, it will not be in the answer either, and it will tell you that rather
       than guessing.</p>
       <p>It runs on the free AI included with your Cloudflare account, so asking costs nothing.
-      If you ever want sharper answers, there is a paid upgrade in section 13.</p>
+      If you ever want sharper answers, there is a paid upgrade in section 14.</p>
     </div>
   </div>
 </section>
@@ -930,8 +952,79 @@ uploading exports at the moment.</code></pre>
   </div>
 </section>
 
+
 <section id="s13">
-  <div class="sec-head"><div class="num">13</div><h2>What it costs, and what it will not do</h2></div>
+  <div class="sec-head"><div class="num">13</div><h2>Connecting the rest of your business</h2></div>
+  <div class="stack-lg">
+    <p>What you have been given watches money and work, because that is what nearly every trades
+    business asks for first. It is a starting point, not the limit. Most businesses have two or
+    three other things they care about, and those are usually the ones nobody is tracking.</p>
+
+    <div class="panel">
+      <div class="eyebrow">Worth saying out loud</div>
+      <h3>The best thing to add is the one you currently go digging for</h3>
+      <p>Not the thing that sounds most impressive. If once a month you find yourself opening
+      three tabs and a spreadsheet to answer the same question, that question is what should go
+      on the dashboard next. Say it in the Code tab and ask for it.</p>
+    </div>
+
+    <div class="stack">
+      <h3>Things people ask for, and what is involved</h3>
+      <div class="tbl-wrap"><table>
+        <tr><th style="width:31%">What</th><th>How it gets in</th></tr>
+        <tr><td><strong>Materials and stock</strong></td><td>Not usefully in Xero. Depends what
+        you use: simPRO and AroFlo hold stock and can be connected properly. ServiceM8 tracks
+        materials against jobs. A stock spreadsheet uploads like any other file.</td></tr>
+        <tr><td><strong>Hours worked, labour cost</strong></td><td>Tradify exports timesheets the
+        same way it exports jobs. Payroll systems vary; worth asking about yours.</td></tr>
+        <tr><td><strong>Quote win rate</strong></td><td>Already possible from what you upload.
+        Most businesses have never measured it, and it is usually the most useful number on the
+        board.</td></tr>
+        <tr><td><strong>Purchase orders and supplier bills</strong></td><td>The bills are in Xero
+        already. Tradify exports the orders.</td></tr>
+        <tr><td><strong>Vehicles, plant, servicing</strong></td><td>Usually a spreadsheet or
+        nothing at all. Upload it and a routine can warn you before a service falls due.</td></tr>
+        <tr><td><strong>Licences, certificates, insurances</strong></td><td>Usually expiry dates
+        in somebody's head. A tab plus a routine that warns you a month out is a small job and
+        people tend to value it more than they expect.</td></tr>
+        <tr><td><strong>Where the work comes from</strong></td><td>Depends where enquiries land.
+        If it is email, that is reachable.</td></tr>
+      </table></div>
+    </div>
+
+    <div class="stack">
+      <h3>Three ways anything gets connected</h3>
+      <p>Every source falls into one of these, and it is worth knowing which yours is, because it
+      decides how reliable it will be.</p>
+      <ul>
+        <li><strong>A proper connection.</strong> The system offers a way for other software to
+        ask it for data. Live, reliable, nothing to remember. Xero works this way, and so do
+        several of the bigger job systems.</li>
+        <li><strong>A file you upload.</strong> You export it and drag it on. Reliable, but only
+        as current as the last upload, and the dashboard shows you that age in plain sight.</li>
+        <li><strong>Through the browser.</strong> For systems with no other way in, like Tradify.
+        Something opens the page and clicks the buttons as you would. It works, and it is the
+        most fragile of the three, so it is used only where there is no alternative.</li>
+      </ul>
+      <p>If you are not sure which category something falls into, ask. Working it out takes a few
+      minutes and it is better to know before you build a habit around it.</p>
+    </div>
+
+    <div class="warn">
+      <div class="eyebrow">One thing to be realistic about</div>
+      <h3>A dashboard is only as good as what feeds it</h3>
+      <p>Anything that depends on somebody remembering to upload will eventually go stale. That is
+      not a flaw in the software, it is just true, and it is why every card states how old its
+      data is rather than presenting everything as current.</p>
+      <p>Before adding a source that needs a weekly habit, decide who does it and whether they
+      will. If the answer is nobody, it is better to leave it off the dashboard than to have a
+      number nobody trusts sitting next to numbers that are right.</p>
+    </div>
+  </div>
+</section>
+
+<section id="s14">
+  <div class="sec-head"><div class="num">14</div><h2>What it costs, and what it will not do</h2></div>
   <div class="stack-lg">
     <div class="tbl-wrap"><table>
       <tr><th style="width:36%">Running cost</th><th>Amount</th></tr>
@@ -958,8 +1051,11 @@ uploading exports at the moment.</code></pre>
         properly.</li>
         <li><strong>It does not fire the moment something happens.</strong> It runs on a schedule.
         An invoice that falls overdue at 2pm is on tomorrow's card, not an alert.</li>
-        <li><strong>It cannot see anything Tradify will not export.</strong> Section 04 covers
-        why.</li>
+        <li><strong>It cannot see anything Tradify will not export</strong>, unless the browser
+        option in section 07 is set up. Section 04 covers why.</li>
+        <li><strong>It does not do safety or compliance.</strong> It can warn you a certificate is
+        expiring if you upload the dates. It is not a compliance system and should not be relied
+        on as one.</li>
       </ul>
     </div>
 
@@ -973,8 +1069,8 @@ uploading exports at the moment.</code></pre>
   </div>
 </section>
 
-<section id="s14">
-  <div class="sec-head"><div class="num">14</div><h2>Every link in one place</h2></div>
+<section id="s15">
+  <div class="sec-head"><div class="num">15</div><h2>Every link in one place</h2></div>
   <div class="stack">
     <div class="links">
       <div class="lrow"><b>Sign up to Cloudflare</b><span>https://dash.cloudflare.com/sign-up</span></div>

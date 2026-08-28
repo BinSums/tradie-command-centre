@@ -74,6 +74,21 @@ data. Raise it as a to-do naming the person who does the export, not a vague not
 more than 21 days old, the habit has stopped rather than slipped: say that plainly, because
 the fix is a conversation, not a reminder.
 
+## 4b. If the Tradify fetch is scheduled, check it is still working
+
+The browser fetch is the most brittle thing here by design, and its usual failure is not a bug:
+the Tradify session expired and somebody has to sign in once in Chrome.
+
+Look for recent `fetch-from-tradify` cards. If the last few are `warn`:
+
+- **Session expired**: not yours to fix and not a fault. Put it on the card as blocked on them,
+  with the exact fix: open Chrome, sign in to Tradify, tick remember me.
+- **Browser not connected**: Chrome was closed or the extension is disabled.
+- **Failed three runs running**: say plainly that it is worth going back to uploading by hand
+  for now. A weekly minute beats a number nobody trusts, and the upload box always works.
+
+Never try to sign in to Tradify, and never go looking for stored credentials to do it with.
+
 ## 5. Check the dashboard is actually being fed
 
 ```bash

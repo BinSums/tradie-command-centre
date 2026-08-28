@@ -24,7 +24,7 @@ how far in they are.
 
 ---
 
-## Step 1 of 9: is anything missing?
+## Step 1 of 10: is anything missing?
 
 Check all of these before asking them for anything. Do not report problems one at a time as you
 trip over them: find everything first, then give them one short list of what to fix.
@@ -58,7 +58,7 @@ bookkeeper?" If it is the bookkeeper, stop cleanly. Tell them everything else ca
 but the dashboard would have no figures in it, so it is worth waiting. Offer to pick up exactly
 here when the bookkeeper is available.
 
-## Step 2 of 9: four questions
+## Step 2 of 10: four questions
 
 Ask them in **one** message, and say up front it is the only time they need to decide anything.
 
@@ -69,7 +69,7 @@ Ask them in **one** message, and say up front it is the only time they need to d
    Do not ask them to type it into the chat.** Say plainly: "I will not see it, and neither will
    anyone else."
 
-## Step 3 of 9: build the database
+## Step 3 of 10: build the database
 
 Say first: "I am making a database inside your own Cloudflare account. Nothing leaves it."
 
@@ -96,7 +96,7 @@ npx wrangler d1 execute <business-slug>-cc-db --remote --file=schema.sql   # fro
 dashboard talks to an empty database, and the symptom is a dashboard that loads perfectly with
 nothing in it and no error anywhere. If you ever see that later, this is why.
 
-## Step 4 of 9: three passwords
+## Step 4 of 10: three passwords
 
 Generate the two random ones yourself and never display them:
 
@@ -115,7 +115,7 @@ npx wrangler secret put COOKIE_SECRET
 npx wrangler secret put INGEST_SECRET
 ```
 
-## Step 5 of 9: put it online
+## Step 5 of 10: put it online
 
 ```bash
 npx wrangler deploy
@@ -130,7 +130,7 @@ rather than investigating.
 Every `wrangler` command from here on runs in `~/.command-centre/worker`, never in the plugin
 folder.
 
-## Step 6 of 9: connect the reports to it
+## Step 6 of 10: connect the reports to it
 
 ```bash
 mkdir -p ~/.command-centre/bin
@@ -151,7 +151,7 @@ Ask them to refresh and tell you if they can see a card called "Setup complete".
 is the test, not the command exiting cleanly.** If they cannot see it, the token in `env` does
 not match the deployed one: set `INGEST_SECRET` again and rewrite `env` with the same value.
 
-## Step 7 of 9: let the reports run on their own
+## Step 7 of 10: let the reports run on their own
 
 Say: "This lets the daily reports run at 7am without stopping to ask permission, since nobody
 is awake to answer."
@@ -173,7 +173,7 @@ Tell them it backed up their settings first and removed nothing.
 dashboard reports confidently on half their business.** Step 9 is what catches that, so do not
 skip it.
 
-## Step 8 of 9: the routines, and ten minutes about the business
+## Step 8 of 10: ten minutes about the business
 
 Copy `templates/CLAUDE.md` into the folder the routines will run from, filling in the business
 name, dashboard URL and their name. Use a python heredoc.
@@ -186,25 +186,76 @@ Tell them why: "This is what stops it giving you advice that sounds like it came
 internet." It is the step people want to skip and the one that decides whether they keep using
 it.
 
-Then schedule these as scheduled tasks. Each prompt must be self-contained, because a scheduled
-run starts fresh with no memory: name the skill, the working directory, and that it must load
+## Step 9 of 10: ask what they actually want watched
+
+**Do not just install the four routines and move on.** They were written for a landscaping
+business and they are a starting point, not an opinion about what matters to this one. A tiler
+worries about different things from a plumber with a van full of stock.
+
+Ask, plainly: **"Forget what I have shown you. What do you wish you knew every Monday that you
+currently have to go digging for?"** Then shut up and let them answer. What comes out is usually
+not on the list below.
+
+Then work through what they actually track. Some of it you can do today, some needs another
+connection, and some is a spreadsheet they will have to keep uploading:
+
+| If they mention | What you can do about it |
+| --- | --- |
+| Materials and stock | Not in Xero usefully. Ask what they use. simPRO and AroFlo hold stock and have APIs; ServiceM8 has materials on jobs. A stock spreadsheet uploads like any other CSV. |
+| Hours worked, labour cost | Tradify timesheets export as CSV. If they use a payroll product, ask which: several are reachable. |
+| Quotes and win rate | Already covered, and worth showing them the conversion angle since most have never measured it. |
+| Purchase orders, supplier bills | Xero has the bills. Tradify exports the POs. |
+| Vehicles, plant, servicing | Usually a spreadsheet or nothing. Uploads fine, and a routine can watch service dates. |
+| Certificates, licences, insurances | Usually expiry dates in someone's head. A tab with a warning routine is a ten minute build and they will love it. |
+| Leads, where work comes from | Ask where enquiries land. If it is email, that is reachable. |
+| Safety, SWMS, incidents | Handle carefully. Say what it can and cannot do rather than promising compliance. |
+
+**Only schedule what they said they wanted.** A dashboard with three routines they asked for
+beats one with six they did not.
+
+Set up as scheduled tasks. Each prompt must be self-contained, because a scheduled run starts
+fresh with no memory: name the skill, the working directory, and that it must load
 `standing-rules` first.
 
-| Routine | Cron |
-| --- | --- |
-| Morning brief | `52 6 * * 1-5` |
-| Routine audit | `41 4 * * *` |
-| Cash and debtors (offer later) | `7 8 * * 1` |
-| Jobs and quotes (offer later) | `33 8 * * 1` |
+| Routine | Cron | Where |
+| --- | --- | --- |
+| Morning brief | `52 6 * * 1-5` | Cloud or local |
+| Routine audit | `41 4 * * *` | Cloud or local |
+| Cash and debtors | `7 8 * * 1` | Cloud or local |
+| Jobs and quotes | `33 8 * * 1` | Cloud or local |
+| **Fetch from Tradify** | `12 7 * * 1` | **Local only, needs the browser** |
 
-**Set up only the morning brief and the audit.** Say the other two can be added any time by
-asking. Two habits that stick beat four that get ignored.
+**Start with the morning brief and the audit.** Say the rest can be added any time by asking.
+Two habits that stick beat five that get ignored.
 
-Tell them plainly: **these run while Claude is open on this computer.** If the machine is asleep
-at 7am, the report runs when they next open it. If this is a laptop that goes home, say so now
-and suggest leaving it on, or using the office computer instead.
+**Cloud or local.** A cloud routine keeps running with the computer off, which is the better
+answer for everything except the Tradify fetch. Tell them plainly: **these run while Claude is
+open on this computer** if local, and if the machine is asleep the run happens when they next
+open it.
 
-## Step 9 of 9: prove it works, then hand over
+## Step 9b of 10: offer the automatic Tradify fetch
+
+Optional, and only worth doing if they will keep Chrome signed in to Tradify.
+
+It replaces the weekly upload with a routine that opens Tradify in the browser, runs both
+exports and uploads them. Explain why it needs a browser extension at all: **Tradify has no way
+for another program to ask it for data, so the only route in is the screen, the same way a
+person would do it.**
+
+If they want it:
+
+1. Install the Claude in Chrome extension from the Chrome Web Store. Works on Chrome and Edge,
+   on both Mac and Windows.
+2. Sign in to Tradify in that browser and tick remember me.
+3. Schedule `fetch-from-tradify` as a **local** task.
+4. **Run it once with Run now, and approve the browser permission prompts with "always
+   allow".** Without this an unattended run stalls waiting for an approval nobody sees.
+
+Tell them the honest trade: it saves a minute a week, and it stops working whenever their
+Tradify session expires, at which point it tells them and they upload by hand until somebody
+signs in again. The upload box never stops working regardless.
+
+## Step 10 of 10: prove it works, then hand over
 
 Do not finish on a promise.
 
