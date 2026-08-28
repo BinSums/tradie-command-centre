@@ -16,7 +16,7 @@ nobody helping, and takes about an hour.
 If you already have Claude and Node.js:
 
 ```
-/plugin marketplace add bensims/tradie-command-centre
+/plugin marketplace add BinSums/tradie-command-centre
 /plugin install tradie-cc@sims-business-tools
 /tradie-cc:setup
 ```

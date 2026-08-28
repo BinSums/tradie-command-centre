@@ -42,7 +42,7 @@ npx wrangler d1 delete <db-name>
   `/plugin marketplace add /path/to/tradie-command-centre`. Fine for a sit-down install and
   it means no GitHub account, no auth, nothing public.
 - **Public GitHub** (not set up yet): create the repo, push, then they run
-  `/plugin marketplace add bensims/tradie-command-centre`. Needed if they ever install it
+  `/plugin marketplace add BinSums/tradie-command-centre`. Needed if they ever install it
   themselves or if I want updates to reach them. There is nothing secret in the repo.
 
 Until the repo is pushed, **the install line in the client PDF does not work.** Either push it
@@ -116,7 +116,7 @@ Xero tools. **If the Xero tools do not answer, stop.** Everything downstream rep
 ### Install the plugin, 5 minutes
 
 ```bash
-/plugin marketplace add <folder path, or bensims/tradie-command-centre once pushed>
+/plugin marketplace add <folder path, or BinSums/tradie-command-centre once pushed>
 /plugin install tradie-cc@sims-business-tools
 ```
 

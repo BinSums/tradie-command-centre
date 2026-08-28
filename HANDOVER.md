@@ -12,7 +12,7 @@ working dashboard without me being present, present in the room, or on the phone
 They end up typing three lines:
 
 ```
-/plugin marketplace add bensims/tradie-command-centre
+/plugin marketplace add BinSums/tradie-command-centre
 /plugin install tradie-cc@sims-business-tools
 /tradie-cc:setup
 ```
@@ -28,7 +28,7 @@ repairs what it can, and reports the rest in plain words.
 ## HARD PREREQUISITE: the repo must be public on GitHub
 
 **Self-service does not work until this is done.** The first line of the guide is
-`/plugin marketplace add bensims/tradie-command-centre`, and there is currently no remote.
+`/plugin marketplace add BinSums/tradie-command-centre`, and there is currently no remote.
 There is nothing secret in the repo: every credential is created during their setup and lives
 in their Cloudflare account and their `~/.command-centre/env`.
 
