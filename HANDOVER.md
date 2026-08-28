@@ -53,10 +53,16 @@ it is the difference between them trusting the install and not.
 
 ## The trap, stated once so I do not forget it
 
-`dontAsk` means an un-allowlisted call is **denied silently**. The run continues, the card still
-posts, and the number is just missing. Measured on my own machine on 28 Aug 2026: 42 denials in
-two days across four routines, and every denied `Edit` and `Write` was to a path an allow rule
-already covered. Path rules for those two tools are not reliable in this mode.
+`dontAsk` means an un-allowlisted call is **denied silently**. Measured on my own machine on
+28 Aug 2026: 42 denials in two days across four routines, and every denied `Edit` and `Write` was
+to a path an allow rule already covered. Path rules for those two tools are not reliable in this
+mode.
+
+What that actually costs, checked rather than assumed: the model is told to try another tool and
+does, so 13 of 14 denied writes recovered via a python script and the change landed. The cost was
+a wasted turn each time. 1 of 14 did not recover and was lost with nothing to say so. Treat it as
+an efficiency problem with an occasional correctness tail, not as routine data loss. The tail is
+what the nightly audit is for.
 
 That is why `standing-rules` forbids `Edit` and `Write` outside `/tmp` and makes every file
 change go through a `python3` heredoc, and why the audit must never "fix" a denial by adding

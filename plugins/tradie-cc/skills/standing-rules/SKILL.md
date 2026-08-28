@@ -39,11 +39,18 @@ carries on and the card still posts, just with a hole in it where the data shoul
 
 Measured on a live machine running this pattern, 28 August 2026: 42 denied calls across four
 routines in two days, and **every denied `Edit` and `Write` targeted a path that an allow rule
-already covered.** Path rules for `Edit` and `Write` are not reliably honoured in this mode.
-So do not rely on them:
+already covered.** Path rules for those two tools are not reliably honoured in this mode.
+
+Be accurate about what that costs, because it is not usually lost work. The denial message tells
+the model to try another tool, and it does: in 13 of those 14 cases the run recovered by writing
+a python script and executing it, and the change landed. The routine cost was a wasted turn each
+time, not a wrong result. In 1 of 14 it did not recover and the file was never written, with
+nothing to say so. So this is mostly an efficiency rule and occasionally a correctness one, and
+it is cheap either way:
 
 - **Never use `Edit` or `Write` on a file outside `/tmp`.** Write the change inside a
-  `python3` script and run that instead. `Bash(python3:*)` matches reliably.
+  `python3` script and run that instead. `Bash(python3:*)` matches reliably, so the change
+  lands first time instead of after a denial and a retry.
 - **Read files with the `Read` tool**, not `sed -n` or `head` on a path.
 - **One simple command per Bash call.** A compound of a variable assignment, a command
   substitution and a pipe does not match an allowlist entry and is denied whole. Put the
