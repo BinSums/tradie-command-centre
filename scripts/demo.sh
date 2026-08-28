@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# Run the dashboard on this laptop with realistic made-up data, so it can be shown
+# to someone before they commit to installing anything. Touches nothing in the cloud
+# and needs no Cloudflare account.
+#
+#   bash scripts/demo.sh          starts it on http://127.0.0.1:8799  (password: demo)
+set -euo pipefail
+cd "$(dirname "$0")/../worker"
+
+if [[ ! -f wrangler.toml ]]; then
+  sed -e 's/__WORKER_NAME__/cc-demo/' -e 's/__BUSINESS_NAME__/Demo Landscaping/' \
+      -e 's|__TIMEZONE__|Australia/Sydney|' -e 's/__CURRENCY__/AUD/' \
+      -e 's/__DB_NAME__/cc-demo-db/' -e 's/__DB_ID__/local-demo/' \
+      wrangler.toml.template > wrangler.toml
+fi
+[[ -f .dev.vars ]] || cat > .dev.vars <<'EOF'
+DASH_PASSWORD=demo
+COOKIE_SECRET=demo-cookie-secret-local-only
+INGEST_SECRET=demo-ingest-secret-local-only
+EOF
+
+echo "Building the local database..."
+npx --yes wrangler@latest d1 execute cc-demo-db --local --file=schema.sql >/dev/null
+npx --yes wrangler@latest d1 execute cc-demo-db --local --file=../scripts/demo-seed.sql >/dev/null
+
+echo
+echo "  Dashboard:  http://127.0.0.1:8799"
+echo "  Password:   demo"
+echo
+npx --yes wrangler@latest dev --local --port 8799

@@ -1,0 +1,19 @@
+# Written by /tradie-cc:setup. Do not paste secrets in here: they go in
+# `wrangler secret put`, which stores them encrypted on Cloudflare.
+#
+#   DASH_PASSWORD   the login password for the dashboard
+#   COOKIE_SECRET   random key that signs the session cookie
+#   INGEST_SECRET   bearer token the routines use to POST results
+name = "__WORKER_NAME__"
+main = "worker.js"
+compatibility_date = "2026-01-01"
+
+[vars]
+BUSINESS_NAME = "__BUSINESS_NAME__"
+TIMEZONE = "__TIMEZONE__"
+CURRENCY = "__CURRENCY__"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "__DB_NAME__"
+database_id = "__DB_ID__"
