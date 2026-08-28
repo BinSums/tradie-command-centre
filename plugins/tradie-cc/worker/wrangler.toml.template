@@ -8,6 +8,11 @@ name = "__WORKER_NAME__"
 main = "worker.js"
 compatibility_date = "2026-01-01"
 
+# Off deliberately. Left on, every deploy also publishes the dashboard at extra
+# versioned preview URLs. They are behind the same password, but a private business
+# dashboard does not want more addresses in the world than the one its owner uses.
+preview_urls = false
+
 [vars]
 BUSINESS_NAME = "__BUSINESS_NAME__"
 TIMEZONE = "__TIMEZONE__"

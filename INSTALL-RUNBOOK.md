@@ -17,8 +17,9 @@ Be honest with yourself about this before you book anything.
 | `/tradie-cc:setup` against real Cloudflare | **NEVER RUN.** See step 0. |
 | Xero connector discovery | **Not tested** against a second person's account. |
 
-**Do not let a client be the first real run of the setup.** Rehearse it end to end on my own
-Cloudflare account first, then delete what it made.
+**Done, 28 Aug 2026.** Rehearsed end to end on my own Cloudflare: created, deployed, tested
+live, deleted. It found two real bugs, so it was worth doing. Rehearse again after any change
+to the worker or the setup steps.
 
 ---
 
