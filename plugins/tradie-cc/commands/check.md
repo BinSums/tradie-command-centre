@@ -34,7 +34,7 @@ bash ~/.command-centre/bin/cc.sh get /api/runs?days=7
   it needs `npx wrangler secret put INGEST_SECRET` and the same value written into `env`. Do it.
 - `Setup incomplete: ... is not set`: a password never got set on the server. Set it.
 - Nothing at all / connection error: the dashboard is not deployed, or their internet is down.
-  Ask which, then redeploy from `${CLAUDE_PLUGIN_ROOT}/worker` if needed.
+  Ask which, then redeploy from `~/.command-centre/worker` if needed.
 
 **3. Has anything actually run?**
 

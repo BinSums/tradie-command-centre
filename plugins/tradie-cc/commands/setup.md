@@ -73,17 +73,23 @@ Ask them in **one** message, and say up front it is the only time they need to d
 
 Say first: "I am making a database inside your own Cloudflare account. Nothing leaves it."
 
+**Copy the worker out of the plugin folder first.** The installed plugin lives in a folder
+named after its version, so anything written there is orphaned the moment the plugin updates.
+Their deployment config has to live somewhere that survives that.
+
 ```bash
-cd "${CLAUDE_PLUGIN_ROOT}/worker"
+mkdir -p ~/.command-centre/worker
+cp "${CLAUDE_PLUGIN_ROOT}/worker/worker.js" "${CLAUDE_PLUGIN_ROOT}/worker/schema.sql" "${CLAUDE_PLUGIN_ROOT}/worker/wrangler.toml.template" ~/.command-centre/worker/
+cd ~/.command-centre/worker
 npx wrangler d1 create <business-slug>-cc-db
 ```
 
-Take the `database_id` from the output. Write `wrangler.toml` from `wrangler.toml.template`
-using a python heredoc, filling `__WORKER_NAME__`, `__BUSINESS_NAME__`, `__TIMEZONE__`,
-`__CURRENCY__`, `__DB_NAME__` and `__DB_ID__`. Then:
+Take the `database_id` from the output. Write `wrangler.toml` next to it from
+`wrangler.toml.template` using a python heredoc, filling `__WORKER_NAME__`,
+`__BUSINESS_NAME__`, `__TIMEZONE__`, `__CURRENCY__`, `__DB_NAME__` and `__DB_ID__`. Then:
 
 ```bash
-npx wrangler d1 execute <business-slug>-cc-db --remote --file=schema.sql
+npx wrangler d1 execute <business-slug>-cc-db --remote --file=schema.sql   # from ~/.command-centre/worker
 ```
 
 **`--remote` is not optional.** Without it the tables are built on their laptop while the live
@@ -120,6 +126,9 @@ before they click: "It will look empty. That is right, nothing has run yet."
 
 If the password does not work, it was mistyped into the prompt. Just set `DASH_PASSWORD` again
 rather than investigating.
+
+Every `wrangler` command from here on runs in `~/.command-centre/worker`, never in the plugin
+folder.
 
 ## Step 6 of 9: connect the reports to it
 
