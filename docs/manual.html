@@ -1,0 +1,697 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<title>Command Centre for Trades</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+@page{size:A4;margin:17mm 15mm 17mm}
+:root{
+  --ground:#ffffff; --panel:#fbfcfa; --sunk:#f0f2ec;
+  --ink:#171c17; --body:#394138; --mute:#6e766c; --rule:#dde1d8;
+  --green:#2d5d3a; --clay:#8a5a12; --rust:#9c3527;
+  --display:'Archivo',system-ui,sans-serif;
+  --text:'IBM Plex Sans',system-ui,sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+html,body{background:var(--ground)}
+body{margin:0;color:var(--body);font:10.5pt/1.62 var(--text);-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4{font-family:var(--display);color:var(--ink);margin:0;text-wrap:balance}
+h1{font-size:30pt;font-weight:700;letter-spacing:-.03em;line-height:1.05}
+h2{font-size:17pt;font-weight:650;letter-spacing:-.02em;line-height:1.15}
+h3{font-size:12pt;font-weight:600;letter-spacing:-.01em;line-height:1.25}
+h4{font-size:10.5pt;font-weight:600}
+p{margin:0;max-width:37em}
+ul,ol{margin:0;padding-left:1.15em;max-width:36em}
+li{margin-bottom:.3em}
+li::marker{color:var(--mute)}
+a{color:var(--green);text-decoration:none;border-bottom:.5pt solid rgba(45,93,58,.35)}
+code{font:400 9pt var(--mono);background:var(--sunk);color:var(--ink);padding:1pt 3pt;border-radius:2pt}
+strong{color:var(--ink);font-weight:600}
+
+.eyebrow{font:500 7.5pt/1 var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--mute)}
+section{page-break-before:always;padding-top:2mm}
+section:first-of-type{page-break-before:avoid}
+.sec-head{display:flex;flex-direction:column;gap:5pt;padding-bottom:9pt;margin-bottom:14pt;border-bottom:1.5pt solid var(--ink)}
+.sec-head .num{font:500 8pt/1 var(--mono);letter-spacing:.14em;color:var(--green)}
+.stack{display:flex;flex-direction:column;gap:11pt}
+.stack-lg{display:flex;flex-direction:column;gap:17pt}
+.avoid{break-inside:avoid}
+
+/* cover */
+.cover{height:255mm;display:flex;flex-direction:column;justify-content:space-between;page-break-after:always}
+.cover .top{display:flex;flex-direction:column;gap:14pt;padding-top:38mm}
+.cover .lede{font-size:13pt;line-height:1.55;color:var(--body);max-width:30em}
+.cover .meta{display:flex;flex-direction:column;gap:4pt;border-top:1.5pt solid var(--ink);padding-top:10pt}
+.cover .meta div{font:400 9pt var(--mono);color:var(--mute)}
+
+/* contents */
+.toc{display:flex;flex-direction:column;gap:0;max-width:34em}
+.toc a{display:flex;gap:12pt;align-items:baseline;padding:7pt 0;border-bottom:.5pt solid var(--rule);border-top:0;border-left:0;border-right:0;color:var(--ink)}
+.toc .n{font:500 8pt var(--mono);color:var(--green);flex:0 0 22pt}
+.toc .t{font:500 10.5pt var(--text)}
+.toc .d{font-size:9pt;color:var(--mute);margin-left:auto;text-align:right;max-width:15em}
+
+/* dashboard mock */
+.screen{border:.75pt solid var(--rule);border-radius:7pt;overflow:hidden;break-inside:avoid;background:var(--ground)}
+.screen .bar{display:flex;align-items:center;gap:7pt;padding:7pt 11pt;border-bottom:.75pt solid var(--rule);background:var(--sunk)}
+.screen .bar b{font:600 9.5pt var(--text);color:var(--ink)}
+.screen .bar span{font:400 8pt var(--mono);color:var(--mute);margin-left:auto}
+.screen .inner{padding:11pt;display:flex;flex-direction:column;gap:9pt}
+.flag{border-left:2.25pt solid var(--rule);background:var(--sunk);border-radius:0 6pt 6pt 0;padding:7pt 10pt;display:flex;flex-direction:column;gap:2pt}
+.flag.now{border-left-color:var(--rust)} .flag.watch{border-left-color:var(--clay)} .flag.good{border-left-color:var(--green)}
+.flag .k{font:500 6.5pt/1 var(--mono);letter-spacing:.13em;text-transform:uppercase;color:var(--mute)}
+.flag .t{font:600 10pt var(--text);color:var(--ink);line-height:1.3}
+.flag .m{font:400 8.5pt var(--mono);color:var(--mute);font-variant-numeric:tabular-nums}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:6pt}
+.stat{background:var(--sunk);border-radius:6pt;padding:7pt 8pt}
+.stat .k{font:500 6.5pt/1 var(--mono);letter-spacing:.11em;text-transform:uppercase;color:var(--mute)}
+.stat .v{font:650 14pt/1.1 var(--display);color:var(--ink);margin-top:4pt;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.stat .d{font:400 7.5pt var(--mono);margin-top:2pt;font-variant-numeric:tabular-nums}
+.up{color:var(--green)} .dn{color:var(--rust)}
+.cap{font-size:9pt;color:var(--mute);max-width:36em}
+
+/* callouts + panels */
+.panel{background:var(--panel);border:.75pt solid var(--rule);border-radius:7pt;padding:13pt 15pt;display:flex;flex-direction:column;gap:7pt;break-inside:avoid}
+.warn{background:#fdf6e9;border:.75pt solid var(--clay);border-radius:7pt;padding:13pt 15pt;display:flex;flex-direction:column;gap:7pt;break-inside:avoid}
+.warn .eyebrow{color:var(--clay)}
+pre{margin:0;background:var(--sunk);border:.75pt solid var(--rule);border-radius:6pt;padding:9pt 11pt;overflow-x:auto;break-inside:avoid}
+pre code{background:none;padding:0;font-size:8.5pt;line-height:1.7;white-space:pre-wrap;word-break:break-word}
+
+/* tables */
+table{border-collapse:collapse;width:100%;break-inside:avoid;font-size:9.5pt}
+th{text-align:left;font:600 8pt var(--text);letter-spacing:.05em;text-transform:uppercase;color:var(--mute);
+   padding:0 8pt 5pt 0;border-bottom:1pt solid var(--ink)}
+td{padding:6pt 8pt 6pt 0;border-bottom:.5pt solid var(--rule);vertical-align:top}
+td:last-child,th:last-child{padding-right:0}
+td strong{white-space:nowrap}
+.tbl-wrap{overflow-x:auto}
+
+/* steps */
+.steps{display:flex;flex-direction:column;counter-reset:s}
+.step{display:grid;grid-template-columns:26pt 1fr;gap:11pt;padding:11pt 0;border-bottom:.5pt solid var(--rule);break-inside:avoid}
+.step:last-child{border-bottom:0}
+.step::before{counter-increment:s;content:counter(s,decimal-leading-zero);font:600 8.5pt/1.7 var(--mono);color:var(--green)}
+.step .sb{display:flex;flex-direction:column;gap:5pt;min-width:0}
+
+/* link index */
+.links{display:flex;flex-direction:column;gap:0}
+.lrow{display:grid;grid-template-columns:1fr;gap:1pt;padding:6pt 0;border-bottom:.5pt solid var(--rule);break-inside:avoid}
+.lrow b{font:600 9.5pt var(--text);color:var(--ink)}
+.lrow span{font:400 8pt var(--mono);color:var(--green);word-break:break-all}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:11pt}
+@media print{a{border-bottom:none}}
+</style></head><body>
+
+<div class="cover">
+  <div class="top">
+    <div class="eyebrow">Operating manual</div>
+    <h1>Command&nbsp;Centre<br>for&nbsp;Trades</h1>
+    <p class="lede">A private dashboard that reads your Xero and your Tradify exports every
+    morning and tells you the one thing worth acting on. This manual covers what it does,
+    how to set it up yourself, and exactly where it stops.</p>
+  </div>
+  <div class="meta">
+    <div>Version 0.1 &middot; August 2026</div>
+    <div>Built by Ben Sims, Lawn Tips</div>
+    <div>Runs in your Claude account, deploys to your Cloudflare account</div>
+  </div>
+</div>
+
+<section>
+  <div class="sec-head"><div class="num">Contents</div><h2>What is in this manual</h2></div>
+  <div class="toc">
+    <a href="#s1"><span class="n">01</span><span class="t">What this is</span><span class="d">And what it replaces</span></a>
+    <a href="#s2"><span class="n">02</span><span class="t">What you see each day</span><span class="d">The dashboard, explained</span></a>
+    <a href="#s3"><span class="n">03</span><span class="t">The three routines</span><span class="d">What each one looks for</span></a>
+    <a href="#s4"><span class="n">04</span><span class="t">Where the numbers come from</span><span class="d">Xero, Tradify, your spreadsheet</span></a>
+    <a href="#s5"><span class="n">05</span><span class="t">Before you start</span><span class="d">Five accounts, four are free</span></a>
+    <a href="#s6"><span class="n">06</span><span class="t">Setting it up</span><span class="d">Fifteen minutes, once</span></a>
+    <a href="#s7"><span class="n">07</span><span class="t">The export habit</span><span class="d">The part that will catch you out</span></a>
+    <a href="#s8"><span class="n">08</span><span class="t">Using it day to day</span><span class="d">Cards, the list, asking for things</span></a>
+    <a href="#s9"><span class="n">09</span><span class="t">When something looks wrong</span><span class="d">Troubleshooting</span></a>
+    <a href="#s10"><span class="n">10</span><span class="t">How it is built</span><span class="d">For whoever is technical</span></a>
+    <a href="#s11"><span class="n">11</span><span class="t">What it costs to run</span><span class="d">And what it does not do</span></a>
+    <a href="#s12"><span class="n">12</span><span class="t">Every link in one place</span><span class="d">Index</span></a>
+  </div>
+</section>
+
+<section id="s1">
+  <div class="sec-head"><div class="num">01</div><h2>What this is</h2></div>
+  <div class="stack-lg">
+    <div class="stack">
+      <p>Your numbers already exist. Xero knows what you are owed, Tradify knows what work is
+      booked, and your quoting spreadsheet knows what is out the door. The problem is not that
+      the information is missing. It is that checking three systems is a job nobody does on a
+      Tuesday when there are four crews to get out.</p>
+      <p>This puts one screen in front of that. Every weekday morning it reads across all of it
+      and posts a single card saying what actually changed and what is worth doing about it.
+      You read it on your phone before the first job, in about thirty seconds.</p>
+    </div>
+    <div class="panel">
+      <div class="eyebrow">The distinction that matters</div>
+      <h3>It is not a reporting tool</h3>
+      <p>Xero and Tradify both have reports. Nobody opens them, because a report is a thing you
+      have to remember to go and look at, and it hands you a list rather than a decision. This
+      works the other way around: it comes to you, and its job is to be short.</p>
+      <p>A morning where nothing needs you says so in one line. That is deliberate. A system
+      that manufactures urgency to justify itself gets ignored inside a month, and then the one
+      morning it really matters, it gets ignored too.</p>
+    </div>
+    <div class="stack">
+      <h3>The three things it is actually looking for</h3>
+      <p>Underneath the routines, it is hunting the same small set of problems that quietly cost
+      trades businesses money:</p>
+      <ul>
+        <li><strong>Work you finished but never invoiced.</strong> The single most common leak,
+        and the hardest to spot, because it is invisible in Xero (no invoice exists) and looks
+        finished in Tradify (the job is closed).</li>
+        <li><strong>Quotes going cold.</strong> Conversion falls off a cliff after about a
+        fortnight. A quote nobody followed up is not a maybe, it is a no that has not been
+        written down yet.</li>
+        <li><strong>The one invoice that matters.</strong> Not the ageing list. Trades businesses
+        get hurt by a single large unpaid job, not by a tail of small ones, and a list sorted by
+        age buries the big one underneath four old $400 invoices.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section id="s2">
+  <div class="sec-head"><div class="num">02</div><h2>What you see each day</h2></div>
+  <div class="stack-lg">
+    <p>This is the home screen, with sample numbers in a real layout. It opens in any browser,
+    and it installs to a phone home screen from the browser share menu so it behaves like an app.
+    One password, which you choose and nobody else is given.</p>
+    <div class="screen">
+      <div class="bar"><b>Demo Landscaping</b><span>Thu 28 Aug</span></div>
+      <div class="inner">
+        <div class="flag now">
+          <div class="k">Cash</div>
+          <div class="t">Three jobs finished but never invoiced</div>
+          <div class="m">$31,900 sitting uninvoiced, the biggest single item this month</div>
+        </div>
+        <div class="flag watch">
+          <div class="k">Quotes</div>
+          <div class="t">Six quotes past two weeks with no follow-up</div>
+          <div class="m">$74,200 of quoted work going cold</div>
+        </div>
+        <div class="flag good">
+          <div class="k">Cash</div>
+          <div class="t">Debtor days down for the seventh week running</div>
+          <div class="m">41 days vs 52 eight weeks ago</div>
+        </div>
+        <div class="grid4">
+          <div class="stat"><div class="k">Cash at bank</div><div class="v">$48,210</div><div class="d up">+3% vs 7d</div></div>
+          <div class="stat"><div class="k">Owed to us</div><div class="v">$42,650</div><div class="d up">-3% vs 7d</div></div>
+          <div class="stat"><div class="k">Debtor days</div><div class="v">41d</div><div class="d up">-5% vs 7d</div></div>
+          <div class="stat"><div class="k">Quoted value</div><div class="v">$138.5k</div><div class="d dn">-2% vs 7d</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="stack">
+      <h3>Reading it</h3>
+      <div class="tbl-wrap"><table>
+        <tr><th style="width:26%">Part</th><th>What it means</th></tr>
+        <tr><td><strong>Coloured stripe</strong></td><td>Red needs doing this week. Amber is worth
+        knowing but will keep. Green is something going right, and it is there so the red ones
+        stay believable.</td></tr>
+        <tr><td><strong>The grey line</strong></td><td>The evidence. Every flag carries the number
+        that caused it, so you can disagree with it. A flag without a number is an opinion.</td></tr>
+        <tr><td><strong>Tiles</strong></td><td>Where each number sits now, and how it moved over
+        the last seven days. Green always means "the good direction", so debtor days falling shows
+        green even though the number went down.</td></tr>
+        <tr><td><strong>To do</strong></td><td>Shared. The routines add to it, you and the office
+        tick things off, and both of you are looking at the same list.</td></tr>
+      </table></div>
+    </div>
+    <p class="cap">There are two more tabs. <strong>Jobs</strong> is the detail behind the flags,
+    a table of live work and open quotes sorted by value. <strong>Reports</strong> is every run
+    it has ever done, kept forever, so you can go back and see what it said in June.</p>
+  </div>
+</section>
+
+<section id="s3">
+  <div class="sec-head"><div class="num">03</div><h2>The three routines</h2></div>
+  <div class="stack-lg">
+    <p>Each one runs on a schedule you set, does its work, and posts a card. You can turn any of
+    them off. The advice is to start with the morning brief alone for a fortnight and add the
+    others once you are actually reading it.</p>
+
+    <div class="panel">
+      <div class="eyebrow">Weekdays, 7am</div>
+      <h3>Morning brief</h3>
+      <p>One card, thirty seconds, built to be read standing up. It leads with whatever actually
+      changed since yesterday, in this order of priority: work finished but not invoiced, a large
+      invoice that just tipped overdue, cash that will not cover the next fortnight of known
+      bills, and quotes going cold.</p>
+      <p>If none of those apply it says the morning is quiet, and stops. It also states how old
+      the Tradify data is on every single card, because that export is manual and goes stale
+      without telling anyone.</p>
+    </div>
+
+    <div class="panel">
+      <div class="eyebrow">Mondays, 8am</div>
+      <h3>Cash and debtors</h3>
+      <p>Not a list of overdue invoices. The two or three genuinely worth a phone call this week,
+      chosen by what is at risk rather than by what looks worst on an ageing report.</p>
+      <p>It tracks <strong>debtor days</strong>, which is what you are owed divided by your average
+      daily sales, and reports the trend rather than the level. Forty-seven days means nothing on
+      its own. Forty-seven, up from thirty-four, is a story. It also checks what you owe before
+      telling you that you are owed a lot, so it will not send you chasing $14,000 while a bigger
+      bill is due Friday.</p>
+      <p>Where an invoice has sat a long time with no follow-up recorded, it says it is worth
+      checking whether the job is in dispute before you ring, rather than telling you to ring.
+      It cannot know that from Xero, and it does not pretend to.</p>
+    </div>
+
+    <div class="panel">
+      <div class="eyebrow">Mondays, 8.30am</div>
+      <h3>Jobs and quotes</h3>
+      <p>Reads your latest export and compares it against the one before, because the interesting
+      finding is almost always the difference between two weeks rather than the state of one.</p>
+      <ul>
+        <li><strong>Finished but not invoiced.</strong> Closed in Tradify, no matching invoice in
+        Xero. First on the card, every time.</li>
+        <li><strong>Quotes going cold.</strong> Sent more than fourteen days ago, not accepted,
+        not rejected, no follow-up. Listed by value.</li>
+        <li><strong>Jobs stalled.</strong> In progress and unmoved since last week, judged against
+        how long that kind of job normally takes you, worked out from your own history rather than
+        from an assumed number.</li>
+        <li><strong>The pipeline.</strong> Quoted and undecided against work booked, which is the
+        number that tells you whether next month is full.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section id="s4">
+  <div class="sec-head"><div class="num">04</div><h2>Where the numbers come from</h2></div>
+  <div class="stack-lg">
+    <p>Three sources, and they are not equal. Understanding which is which is the difference
+    between trusting the dashboard correctly and trusting it blindly.</p>
+    <div class="tbl-wrap"><table>
+      <tr><th style="width:20%">Source</th><th style="width:20%">How it arrives</th><th>What it gives</th></tr>
+      <tr><td><strong>Xero</strong></td><td>Live connection, always current</td>
+      <td>Cash at bank, invoices raised and paid, what you are owed and how old it is, what you
+      owe, and the profit and loss.</td></tr>
+      <tr><td><strong>Tradify</strong></td><td>CSV you export by hand</td>
+      <td>Jobs and their status, quotes and their value, timesheets. As current as your last
+      export and no more.</td></tr>
+      <tr><td><strong>Your quoting spreadsheet</strong></td><td>Read from a folder</td>
+      <td>Quotes that never made it into Tradify, which are the ones most likely to go cold
+      because nothing is tracking them.</td></tr>
+    </table></div>
+
+    <div class="warn">
+      <div class="eyebrow">The honest limitation</div>
+      <h3>Tradify cannot hand its data over automatically</h3>
+      <p>Tradify has no public API, no webhooks and no Zapier connector. Its own integration list
+      is accounting and payments: Xero, QuickBooks, MYOB, Sage, Stripe and Google Calendar. There
+      is no supported way for an outside system to read your jobs and quotes on a schedule, and no
+      amount of building changes that.</p>
+      <p>So anything <em>financial</em> reaches the dashboard through Xero, live, because Tradify
+      pushes your invoices there already. Anything <em>operational</em> reaches it as a CSV that
+      somebody in the office exports and drops in a folder. That takes about a minute and section
+      07 covers exactly how.</p>
+      <p><strong>The risk is not that it breaks. It is that it goes stale quietly.</strong> If the
+      export stops, the jobs numbers do not go blank, they keep showing last fortnight's figures,
+      which is the dangerous way for a number to be wrong. So every card states the export's age,
+      and once it passes seven days the routine stops presenting those figures as current and asks
+      for a fresh one instead. Cash, invoices and debtors carry on regardless, because they come
+      from Xero.</p>
+    </div>
+
+    <div class="stack">
+      <h3>Why the dashboard says "no data" instead of zero</h3>
+      <p>A number it could not find is stored as nothing, never as zero. Zero means your business
+      genuinely had zero that day. If a source was unavailable, the card says which one and marks
+      itself amber rather than quietly reporting on half the picture. This matters more than it
+      sounds: a dashboard that charts a missing number as zero is how a good week starts looking
+      like a disaster, and how you stop believing it.</p>
+    </div>
+  </div>
+</section>
+
+<section id="s5">
+  <div class="sec-head"><div class="num">05</div><h2>Before you start</h2></div>
+  <div class="stack-lg">
+    <p>Five accounts. You already have two of them, three are free to create, and the whole thing
+    runs inside accounts you control.</p>
+    <div class="tbl-wrap"><table>
+      <tr><th style="width:22%">What</th><th style="width:16%">Cost</th><th>Why</th></tr>
+      <tr><td><strong>Xero</strong></td><td>Already yours</td>
+      <td>The live financial connection. Connected once, in Claude's own settings.</td></tr>
+      <tr><td><strong>Tradify</strong></td><td>Already yours</td>
+      <td>For the exports. See section 07.</td></tr>
+      <tr><td><strong>Claude</strong></td><td>One subscription</td>
+      <td>The routines run on your account, which is why the work and the data stay with you.
+      <a href="https://claude.com/product/claude-code">claude.com/product/claude-code</a></td></tr>
+      <tr><td><strong>Cloudflare</strong></td><td>Free to sign up</td>
+      <td>Where the dashboard and your database live. The free tier covers a business this size.
+      <a href="https://dash.cloudflare.com/sign-up">dash.cloudflare.com/sign-up</a></td></tr>
+      <tr><td><strong>Node.js</strong></td><td>Free</td>
+      <td>A one-time install on the computer doing the setup. Version 20 or newer.
+      <a href="https://nodejs.org/en/download">nodejs.org/en/download</a></td></tr>
+    </table></div>
+    <div class="panel">
+      <div class="eyebrow">Worth being clear about</div>
+      <h3>Nothing routes through anybody else</h3>
+      <p>The dashboard is deployed into your own Cloudflare account. The database is created in
+      your account and holds your data. The Xero connection is authorised by you and can be
+      revoked by you. The password is one you pick during setup and it is never shown to anyone,
+      including whoever is helping you install it.</p>
+      <p>There is no server in the middle, no per-seat billing and no account with me. If you and
+      I never speak again, it keeps running.</p>
+    </div>
+  </div>
+</section>
+
+<section id="s6">
+  <div class="sec-head"><div class="num">06</div><h2>Setting it up</h2></div>
+  <div class="stack-lg">
+    <p>You do not follow these steps by hand. You install the plugin, type one command, and
+    Claude walks the sequence with you, asking four questions along the way. The steps are
+    written out here so you can see what it is doing rather than watching it happen blind.</p>
+    <pre><code>/plugin marketplace add &lt;the address I give you&gt;
+/plugin install tradie-command-centre
+/tradie-cc:setup</code></pre>
+    <p class="cap">Plugin documentation, if you want to read about the mechanism itself:
+    <a href="https://docs.claude.com/en/docs/claude-code/plugins">docs.claude.com/en/docs/claude-code/plugins</a></p>
+
+    <div class="steps">
+      <div class="step"><div class="sb">
+        <h3>Connect Xero</h3>
+        <p>Open Settings, then Connectors, find Xero, click Connect, sign in to your Xero
+        organisation and approve. This is the only step nobody else can do for you, and the setup
+        will check it worked before going any further.</p>
+      </div></div>
+      <div class="step"><div class="sb">
+        <h3>Answer four questions</h3>
+        <p>Your business name as it should appear at the top of the dashboard, your timezone,
+        your currency, and a password. Pick the password yourself and have it ready to type. It
+        is never echoed back into the conversation.</p>
+      </div></div>
+      <div class="step"><div class="sb">
+        <h3>It creates your database</h3>
+        <p>A database is created inside your own Cloudflare account and the tables are built in
+        it. Empty, ready, and yours.</p>
+        <pre><code>npx wrangler d1 create your-business-cc-db
+npx wrangler d1 execute your-business-cc-db --remote --file=schema.sql</code></pre>
+      </div></div>
+      <div class="step"><div class="sb">
+        <h3>It sets three passwords</h3>
+        <p>Your dashboard password, plus two long random strings it generates itself: one that
+        signs your login so a session cannot be forged, and one that lets the routines post their
+        results in. Each is typed into a prompt rather than into a command, so none of them ends
+        up saved in your command history.</p>
+      </div></div>
+      <div class="step"><div class="sb">
+        <h3>It deploys the dashboard</h3>
+        <p>You get a web address. Open it, sign in, and it will be empty. That is correct, because
+        nothing has run yet. Then it posts a test card and asks you to refresh, which proves the
+        whole loop works before anyone walks away from it.</p>
+      </div></div>
+      <div class="step"><div class="sb">
+        <h3>It schedules the routines</h3>
+        <p>Pick which ones and at what time. Start with the morning brief on its own. One habit
+        that sticks beats three that get ignored, and the others take a minute to add later.</p>
+      </div></div>
+    </div>
+    <p class="cap">If you want to understand the tools underneath:
+    <a href="https://developers.cloudflare.com/workers/wrangler/commands/">Wrangler commands</a> and
+    <a href="https://developers.cloudflare.com/d1/">Cloudflare D1</a>.</p>
+  </div>
+</section>
+
+<section id="s7">
+  <div class="sec-head"><div class="num">07</div><h2>The export habit</h2></div>
+  <div class="stack-lg">
+    <p>This is the one part that depends on a person remembering. It takes about a minute, once a
+    week, and the whole jobs and quotes half of the dashboard rests on it. Give it to whoever does
+    the invoicing, not to whoever is on the tools.</p>
+    <p>Save the files into <code>~/.command-centre/imports/</code> on the computer the routines run
+    on. You do not need to rename them.</p>
+
+    <div class="panel">
+      <h3>Jobs</h3>
+      <p>Go to the <strong>Jobs</strong> page. Filter to what you want, then either tick the
+      specific jobs or tick none, which exports everything in the tab you are on. Click
+      <strong>Options</strong> in the top right, then <strong>Export Jobs to File</strong>.</p>
+      <p class="cap"><a href="https://help.tradifyhq.com/hc/en-us/articles/27327169098905-How-To-Export-Jobs">help.tradifyhq.com &rsaquo; How To Export Jobs</a></p>
+    </div>
+
+    <div class="panel">
+      <h3>Quotes</h3>
+      <p>Go to the <strong>Quotes</strong> page and tick the quotes you want, or tick none to get
+      everything in the current tab. Then click the <strong>Export icon</strong>. Note this one has
+      no Options menu, which catches people out after they have learned the Jobs path.</p>
+      <p class="cap"><a href="https://help.tradifyhq.com/hc/en-us/articles/26629183563289-Export-Quotes">help.tradifyhq.com &rsaquo; Export Quotes</a></p>
+    </div>
+
+    <div class="panel">
+      <h3>Better, if you will do it: the Job Financial Report</h3>
+      <p>Go to the <strong>Reports</strong> page and choose <strong>Job Financial Report</strong>.
+      Set the date range, then click the arrow next to the download button and choose
+      <strong>Download CSV File</strong>.</p>
+      <p>This one carries job value and cost, which the plain Jobs export does not. If it is
+      present the routine prefers it for anything involving money, and says on the card which
+      export a figure came from.</p>
+      <p class="cap"><a href="https://help.tradifyhq.com/hc/en-us/articles/44122008198937-Download-Reports-and-Exports-in-a-CSV-file-type">help.tradifyhq.com &rsaquo; Download Reports and Exports in a CSV file type</a></p>
+    </div>
+
+    <div class="warn">
+      <div class="eyebrow">What happens if you stop</div>
+      <h3>It tells you, rather than pretending</h3>
+      <p>Every card carries a line like <em>"Jobs data from Monday 25 Aug export, 3 days old"</em>.
+      Past seven days the routine turns amber, stops reporting those figures as current, and puts
+      a note on the dashboard asking for a fresh export. It will not quietly present three week old
+      job numbers as this morning's.</p>
+      <p>Cash, invoices, debtors and the profit and loss are unaffected, because Xero is live.</p>
+    </div>
+
+    <p class="cap">Tradify's own overview of getting your data out, including deleting it:
+    <a href="https://help.tradifyhq.com/hc/en-us/articles/4402065079705-Exporting-Or-Deleting-Your-Data-From-Tradify">Exporting or deleting your data from Tradify</a>.
+    Their Xero integration, which is what makes the live half work:
+    <a href="https://www.tradifyhq.com/xero-and-tradify-addon">tradifyhq.com/xero-and-tradify-addon</a>.</p>
+  </div>
+</section>
+
+<section id="s8">
+  <div class="sec-head"><div class="num">08</div><h2>Using it day to day</h2></div>
+  <div class="stack-lg">
+    <div class="two">
+      <div class="stack">
+        <h3>Reading a card</h3>
+        <p>Tap any card on the Reports tab and the full report opens underneath the summary. The
+        card is the headline; the report is everything the routine actually worked out, including
+        the parts that did not make the cut.</p>
+      </div>
+      <div class="stack">
+        <h3>The shared list</h3>
+        <p>Routines add to it, you and the office tick things off, and it is the same list on every
+        device. Adding the same job twice is safe: it recognises a job already on the list and
+        leaves the original alone rather than stacking a duplicate.</p>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>Asking it for things, in plain English</h3>
+      <p>Anything you want it to notice, say to Claude in normal words. It goes on a queue, and
+      the next scheduled run picks it up before it does anything else, acts on it, and tells you
+      on the card what it did.</p>
+      <ul>
+        <li><em>"Stop chasing Blackwood, they are on a payment plan."</em> It remembers, and stops
+        putting them on the list.</li>
+        <li><em>"Tell me when quoted work drops under $100k."</em> It watches for it.</li>
+        <li><em>"Add a job to book the excavator for the week of the 8th."</em> Straight onto the
+        shared list.</li>
+      </ul>
+      <p>If it cannot do something, it says so on the card rather than dropping it silently.</p>
+    </div>
+
+    <div class="stack">
+      <h3>Getting it onto a phone</h3>
+      <p>Open the dashboard address in the phone browser, then the share menu, then Add to Home
+      Screen. It opens without browser chrome after that and behaves like an app. Everyone who
+      needs it uses the same password, so decide early whether the crew get it or only the office.</p>
+    </div>
+  </div>
+</section>
+
+<section id="s9">
+  <div class="sec-head"><div class="num">09</div><h2>When something looks wrong</h2></div>
+  <div class="stack-lg">
+    <div class="tbl-wrap"><table>
+      <tr><th style="width:34%">What you see</th><th>What it means and what to do</th></tr>
+      <tr><td><strong>"Setup incomplete: DASH_PASSWORD is not set"</strong></td>
+      <td>The dashboard deployed before its passwords were set. Run
+      <code>npx wrangler secret put DASH_PASSWORD</code> and the same for
+      <code>COOKIE_SECRET</code> and <code>INGEST_SECRET</code>. It refuses to run half-configured
+      on purpose rather than starting up unprotected.</td></tr>
+      <tr><td><strong>Cards stopped appearing</strong></td>
+      <td>The routines are not reaching it. Usually the token in your local config no longer
+      matches the deployed one, which happens if the secret was set twice. Set it again in both
+      places rather than guessing which is right.</td></tr>
+      <tr><td><strong>Jobs numbers look stale</strong></td>
+      <td>They are, and the card will say by how many days. Do a fresh export. If the card is not
+      saying it, that is a bug worth reporting.</td></tr>
+      <tr><td><strong>A card is amber saying Xero was unavailable</strong></td>
+      <td>The connection dropped or the authorisation expired. Reconnect Xero in Settings, then
+      Connectors. The run deliberately reports the gap rather than filling it in.</td></tr>
+      <tr><td><strong>A number looks wrong</strong></td>
+      <td>Open the full report behind the card. Every figure is traceable to the export or the
+      Xero record it came from. If it is genuinely wrong, tell Claude in plain English and the
+      correction is applied on the next run.</td></tr>
+      <tr><td><strong>Nothing has run at all</strong></td>
+      <td>The schedule is not firing, most often because the computer was asleep. Check the
+      scheduled tasks and confirm the timezone matches what you gave during setup.</td></tr>
+    </table></div>
+  </div>
+</section>
+
+<section id="s10">
+  <div class="sec-head"><div class="num">10</div><h2>How it is built</h2></div>
+  <div class="stack-lg">
+    <p>This section is for whoever is technical. Nobody needs to read it to use the thing.</p>
+
+    <div class="stack">
+      <h3>The shape</h3>
+      <p>A single Cloudflare Worker serving a dashboard, backed by a D1 database, both deployed
+      into the client's own Cloudflare account. Routines run as scheduled Claude Code tasks on the
+      client's machine, do their work through the Xero connector and the local exports, and POST
+      their results in over HTTPS with a bearer token. The Worker holds no credentials for any
+      third party system: Xero is reached by the routine, never by the dashboard.</p>
+    </div>
+
+    <div class="stack">
+      <h3>What is stored</h3>
+      <div class="tbl-wrap"><table>
+        <tr><th style="width:24%">Table</th><th>Holds</th></tr>
+        <tr><td><code>runs</code></td><td>Every routine run, append-only. Nothing is ever
+        overwritten, so history is a permanent record rather than a rolling window.</td></tr>
+        <tr><td><code>metrics</code></td><td>One row per date and key, upserted, so re-running a
+        day corrects rather than duplicates. Null means no data, never zero.</td></tr>
+        <tr><td><code>metric_meta</code></td><td>The label, unit and direction for each key, so a
+        new number can be added without a code change.</td></tr>
+        <tr><td><code>notes</code></td><td>Dated recommendations, replaced wholesale per date and
+        area so a re-run corrects its own advice.</td></tr>
+        <tr><td><code>todos</code></td><td>The shared list. Deduped on the open title.</td></tr>
+        <tr><td><code>assistant_queue</code></td><td>Plain English requests waiting for the next
+        run to pick them up.</td></tr>
+        <tr><td><code>pages</code></td><td>Full HTML reports published by a routine, which appear
+        as their own tab.</td></tr>
+        <tr><td><code>imports</code></td><td>Raw CSV drops kept whole and dated, so a routine can
+        diff this week against last and any figure can be traced back.</td></tr>
+        <tr><td><code>kb</code></td><td>Business context, so the assistant knows the things that
+        are not in the numbers.</td></tr>
+      </table></div>
+    </div>
+
+    <div class="stack">
+      <h3>Posting in</h3>
+      <p>Everything goes through one helper, which loads the address and token itself so no secret
+      is ever typed on a command line or left in shell history.</p>
+      <pre><code>cc.sh post  /ingest          card.json     a run card
+cc.sh postj /ingest-metrics  '{...}'       daily numbers
+cc.sh postj /ingest-notes    '{...}'       recommendations
+cc.sh post  /ingest-page     page.json     a full report as a tab
+cc.sh postj /api/todo        '{...}'       add to the shared list
+cc.sh get   /api/assistant-queue           what has been asked for</code></pre>
+    </div>
+
+    <div class="stack">
+      <h3>Security decisions worth knowing</h3>
+      <ul>
+        <li><strong>Two separate credentials.</strong> A browser session cookie for people, a
+        bearer token for routines. Ingest endpoints never accept the cookie, so a malicious page
+        cannot post fake cards using a logged-in browser.</li>
+        <li><strong>Sessions are signed, not stored.</strong> Signed with a secret that lives only
+        in Cloudflare, compared in constant time so the comparison cannot be timed to guess it.</li>
+        <li><strong>Published reports run sandboxed.</strong> Routine-authored HTML renders in a
+        frame with scripts disabled and no access to the session, so a report cannot reach
+        anything.</li>
+        <li><strong>It fails closed.</strong> Missing any of the three secrets, the Worker refuses
+        every request with a message naming the one that is missing, rather than starting up
+        unprotected.</li>
+      </ul>
+    </div>
+
+    <div class="panel">
+      <div class="eyebrow">Deliberately not multi-tenant</div>
+      <h3>One deployment per business</h3>
+      <p>Every client gets their own Worker and their own database. There is no shared instance and
+      no tenant column anywhere, which means there is no query that can accidentally return one
+      business's data to another. It costs a few dollars a month per client instead of nothing,
+      and it removes an entire category of failure.</p>
+    </div>
+  </div>
+</section>
+
+<section id="s11">
+  <div class="sec-head"><div class="num">11</div><h2>What it costs, and what it will not do</h2></div>
+  <div class="stack-lg">
+    <div class="tbl-wrap"><table>
+      <tr><th style="width:36%">Running cost</th><th>Amount</th></tr>
+      <tr><td><strong>Cloudflare hosting and database</strong></td><td>Free tier covers a business
+      this size. A few dollars a month at the outside.</td></tr>
+      <tr><td><strong>Claude subscription</strong></td><td>One, yours. The routines run on it.</td></tr>
+      <tr><td><strong>Xero and Tradify</strong></td><td>No change to your existing plans.</td></tr>
+      <tr><td><strong>Anything to me</strong></td><td>Nothing ongoing. Build and setup are quoted
+      separately and that is the end of it.</td></tr>
+    </table></div>
+
+    <div class="stack">
+      <h3>What it does not do</h3>
+      <p>Worth saying plainly, so nobody discovers it in month two.</p>
+      <ul>
+        <li><strong>It does not write to Xero or Tradify.</strong> It reads. It will tell you to
+        raise an invoice; it will not raise one. That is deliberate and I would push back on
+        changing it.</li>
+        <li><strong>It does not replace your bookkeeper.</strong> It surfaces what to ask them
+        about.</li>
+        <li><strong>It does not do scheduling or dispatch.</strong> Tradify does that and does it
+        properly.</li>
+        <li><strong>It does not fire the moment something happens.</strong> It runs on a schedule.
+        An invoice that falls overdue at 2pm is on tomorrow's card, not an alert.</li>
+        <li><strong>It cannot see anything Tradify will not export.</strong> Section 04 covers
+        why.</li>
+      </ul>
+    </div>
+
+    <div class="panel">
+      <div class="eyebrow">If you want to try it first</div>
+      <h3>There is a demo</h3>
+      <p>The whole dashboard runs on a laptop with realistic sample data and no accounts of any
+      kind, so you can have a proper look before committing to an install. Ask and I will bring
+      it.</p>
+    </div>
+  </div>
+</section>
+
+<section id="s12">
+  <div class="sec-head"><div class="num">12</div><h2>Every link in one place</h2></div>
+  <div class="stack">
+    <div class="links">
+      <div class="lrow"><b>Sign up to Cloudflare</b><span>https://dash.cloudflare.com/sign-up</span></div>
+      <div class="lrow"><b>Download Node.js</b><span>https://nodejs.org/en/download</span></div>
+      <div class="lrow"><b>Claude Code</b><span>https://claude.com/product/claude-code</span></div>
+      <div class="lrow"><b>Claude Code plugins, how they work</b><span>https://docs.claude.com/en/docs/claude-code/plugins</span></div>
+      <div class="lrow"><b>Cloudflare Workers CLI reference</b><span>https://developers.cloudflare.com/workers/wrangler/commands/</span></div>
+      <div class="lrow"><b>Cloudflare D1, the database</b><span>https://developers.cloudflare.com/d1/</span></div>
+      <div class="lrow"><b>Tradify: how to export Jobs</b><span>https://help.tradifyhq.com/hc/en-us/articles/27327169098905-How-To-Export-Jobs</span></div>
+      <div class="lrow"><b>Tradify: how to export Quotes</b><span>https://help.tradifyhq.com/hc/en-us/articles/26629183563289-Export-Quotes</span></div>
+      <div class="lrow"><b>Tradify: how to export Invoices</b><span>https://help.tradifyhq.com/hc/en-us/articles/27232398153241-How-to-export-Invoices</span></div>
+      <div class="lrow"><b>Tradify: reports and exports as CSV</b><span>https://help.tradifyhq.com/hc/en-us/articles/44122008198937-Download-Reports-and-Exports-in-a-CSV-file-type</span></div>
+      <div class="lrow"><b>Tradify: exporting or deleting your data</b><span>https://help.tradifyhq.com/hc/en-us/articles/4402065079705-Exporting-Or-Deleting-Your-Data-From-Tradify</span></div>
+      <div class="lrow"><b>Tradify: purchase orders and bills</b><span>https://help.tradifyhq.com/hc/en-us/articles/27369909807385-How-To-Export-Purchase-Orders-and-Bills</span></div>
+      <div class="lrow"><b>Tradify and Xero integration</b><span>https://www.tradifyhq.com/xero-and-tradify-addon</span></div>
+    </div>
+    <p class="cap" style="margin-top:14pt">Written August 2026. Tradify's help centre articles were
+    checked against the live pages on 28 August 2026; if a menu has moved since, the article is
+    still the right place to look.</p>
+  </div>
+</section>
+
+</body></html>
