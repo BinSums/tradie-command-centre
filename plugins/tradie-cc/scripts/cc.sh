@@ -9,16 +9,22 @@
 # Reads CC_URL and CC_TOKEN from ~/.command-centre/env, written by /tradie-cc:setup.
 set -euo pipefail
 
+# Two homes for the same two values. On a laptop they live in a file written by setup.
+# In a cloud routine there is no home directory and no setup has ever run there, so they
+# arrive as environment variables set on the cloud environment. Environment wins if both
+# are present, because that is the deliberate, per-run one.
 ENV_FILE="${CC_ENV_FILE:-$HOME/.command-centre/env}"
-if [[ ! -f "$ENV_FILE" ]]; then
-  echo "No config at $ENV_FILE. Run /tradie-cc:setup first." >&2
-  exit 1
+if [[ -z "${CC_URL:-}" || -z "${CC_TOKEN:-}" ]]; then
+  if [[ -f "$ENV_FILE" ]]; then
+    # shellcheck disable=SC1090
+    set -a; source "$ENV_FILE"; set +a
+  fi
 fi
-# shellcheck disable=SC1090
-set -a; source "$ENV_FILE"; set +a
 
 if [[ -z "${CC_URL:-}" || -z "${CC_TOKEN:-}" ]]; then
-  echo "CC_URL or CC_TOKEN missing from $ENV_FILE." >&2
+  echo "CC_URL and CC_TOKEN are not set." >&2
+  echo "On this machine they come from $ENV_FILE, written by /tradie-cc:setup." >&2
+  echo "In a cloud routine they must be set as environment variables on the environment." >&2
   exit 1
 fi
 

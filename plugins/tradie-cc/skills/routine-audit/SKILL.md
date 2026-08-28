@@ -66,10 +66,10 @@ Connectors, then Xero, then Connect.
 ## 4. Check the exports have not gone quiet
 
 ```bash
-ls -lt ~/.command-centre/imports/ | head
+bash ~/.command-centre/bin/cc.sh get /api/import-status
 ```
 
-If the newest file is more than 7 days old, the jobs and quotes routine is running on stale
+If the newest upload is more than 7 days old, the jobs and quotes routine is running on stale
 data. Raise it as a to-do naming the person who does the export, not a vague note. If it is
 more than 21 days old, the habit has stopped rather than slipped: say that plainly, because
 the fix is a conversation, not a reminder.

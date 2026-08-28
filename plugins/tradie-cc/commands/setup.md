@@ -133,7 +133,7 @@ folder.
 ## Step 6 of 9: connect the reports to it
 
 ```bash
-mkdir -p ~/.command-centre/bin ~/.command-centre/imports
+mkdir -p ~/.command-centre/bin
 cp "${CLAUDE_PLUGIN_ROOT}/scripts/cc.sh" ~/.command-centre/bin/cc.sh
 chmod +x ~/.command-centre/bin/cc.sh
 ```
@@ -220,17 +220,24 @@ python3 "${CLAUDE_PLUGIN_ROOT}/scripts/scan-denials.py" 1
 
 Fix anything it found now.
 
-Then show them the Tradify export, which is the one job that stays theirs:
+Then show them the Tradify export, which is the one job that stays theirs. **It is uploaded on
+the dashboard, not saved into a folder**, so it works from any computer and the reports can read
+it whether they run here or in the cloud.
 
 - **Jobs**: the Jobs page, tick what they want or tick nothing for all of them, then
   **Options** in the top right, then **Export Jobs to File**.
 - **Quotes**: the Quotes page, tick, then the **Export icon**. There is no Options menu on this
   one, which is what catches people out.
-- Save both into the `imports` folder inside `.command-centre`.
+- Then open the dashboard, and on the Home tab drag the file onto **Add an export**. It works
+  out which export it is on its own and confirms how many rows it saved.
+
+**Walk them through one upload now, with a real file.** Reading about it is not the same as
+having done it once.
 
 Tell them straight: **if that stops, the jobs and quotes numbers go stale rather than going
-blank.** Every card says how old the export is. Suggest they put a weekly reminder in their
-phone now, while you are still here.
+blank.** The dashboard shows the age of each upload right there on the Home tab, and it turns
+amber then red as it ages. Suggest they put a weekly reminder in their phone now, while you are
+still here.
 
 Finish with: the dashboard address, that it adds to a phone home screen from the browser share
 menu, that anything they want it to watch they can just say in plain English, and that if

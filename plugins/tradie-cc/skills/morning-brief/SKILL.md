@@ -14,8 +14,10 @@ Load `posting-to-the-command-centre` first, and work the queue before anything e
 
 - **Xero**: cash position, receivables total, anything that fell overdue since yesterday,
   invoices raised and payments received yesterday.
-- **The latest Tradify export** in `~/.command-centre/imports/`, if there is one. Jobs
-  booked this week, jobs finished but not yet invoiced, quotes sent and not yet accepted.
+- **The latest Tradify upload**, via `cc.sh get /api/import-status` then
+  `cc.sh get "/api/imports?source=tradify-jobs&latest=1"`. Jobs booked this week, jobs finished
+  but not yet invoiced, quotes sent and not yet accepted. Never look on disk: this may be
+  running in the cloud.
 - **The to-do list**: `get /api/todos`. What is still open, and what has been open too long.
 
 ## The one thing
@@ -39,8 +41,8 @@ supporting lines. `detail_html` carries the fuller picture for anyone who taps i
 Metrics: `cash_at_bank`, `revenue_mtd`, and `jobs_active` and `quotes_out` if a Tradify
 export is available.
 
-**Say how old the Tradify data is, every time.** It is a manual export, so it goes stale
-silently. "Jobs data from Monday's export, 3 days old" on the card is the difference
-between a number the owner trusts and a number that quietly misleads them. If the export
-is more than 7 days old, set status `warn` and put a note in area `ops` asking for a fresh
-one rather than reporting the stale figures as current.
+**Say how old the Tradify data is, every time.** It is uploaded by hand, so it goes stale
+silently. "Jobs data from Monday's upload, 3 days old" on the card is the difference between a
+number the owner trusts and a number that quietly misleads them. If it is more than 7 days old,
+set status `warn` and put a note in area `ops` asking for a fresh upload rather than reporting
+the stale figures as current.

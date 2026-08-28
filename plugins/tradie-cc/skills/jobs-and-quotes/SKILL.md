@@ -12,36 +12,39 @@ Load `posting-to-the-command-centre` first, and work the queue before anything e
 
 ## Read the exports
 
-Look in `~/.command-centre/imports/` for the most recent files. Tradify names exports by
-type, so match on content rather than an exact filename, which changes between versions.
-Expect columns for job number, customer, description, status, value and dates.
-
-Three different exports may turn up, and they are not interchangeable:
-
-- The **Jobs** export (Jobs page, Options, Export Jobs to File) carries status and dates.
-- The **Quotes** export (Quotes page, Export icon) carries quote value and state.
-- The **Job Financial Report** (Reports page, Download CSV File) carries job value and cost,
-  which the plain Jobs export does not. If this one is present, prefer it for anything
-  involving money, and say on the card which export a figure came from.
-
-Archive what you read so the next run can diff against it:
+They arrive by upload. Somebody in the office drops the CSV on the dashboard's Home tab and
+it is stored, dated and typed automatically. **Do not go looking on disk**: this routine may be
+running in the cloud, where there is no local folder at all.
 
 ```bash
-post /ingest-import /tmp/import.json    # {"source":"tradify-jobs","filename":"...","csv":"...","period":"..."}
+bash ~/.command-centre/bin/cc.sh get /api/import-status
 ```
 
-Then `get /api/imports?source=tradify-jobs&latest=1` gives you last week's, and the
-difference between the two is where every interesting finding actually lives.
+That gives the newest upload per kind, which is the first thing to read. Then pull the one you
+want, and the one before it, since the interesting finding is almost always the difference
+between two weeks rather than the state of one:
 
-**Check the age of the export first, before reading a single number.** If it is more than
-7 days old, post a `warn` card saying exactly how old it is and what that means, put a note
-in area `ops` asking for a fresh export, and report last week's figures explicitly labelled
-as last week's. Do not silently present stale numbers as current. This will happen: the
-office gets busy and the export is the first habit to slip.
+```bash
+bash ~/.command-centre/bin/cc.sh get "/api/imports?source=tradify-jobs&latest=1"
+bash ~/.command-centre/bin/cc.sh get "/api/imports?source=tradify-quotes&latest=1"
+bash ~/.command-centre/bin/cc.sh get /api/imports          # the list, to find last week's
+```
 
-If the quoting spreadsheet is also in that folder, read it for quotes that never made it
-into Tradify. Quotes living only in Excel are the ones most likely to go cold, because
-nothing is tracking them.
+Three kinds may be present and they are not interchangeable:
+
+- `tradify-jobs` carries status and dates.
+- `tradify-quotes` carries quote value and state.
+- `tradify-job-financials` carries job value and cost, which the plain Jobs export does not. If
+  this is present, prefer it for anything involving money, and say on the card which export a
+  figure came from.
+
+**Check the age before reading a single number.** If the newest upload is more than 7 days old,
+post a `warn` card saying exactly how old it is, put a note in area `ops` asking for a fresh
+upload, and report the figures explicitly labelled as that date's. Do not present stale numbers
+as current. This will happen: the office gets busy and the upload is the first habit to slip.
+
+If nothing has ever been uploaded, say so plainly and post an `info` card. That is not a fault,
+it is a setup step nobody has done yet, and the fix is one drag onto the dashboard.
 
 ## What to look for
 

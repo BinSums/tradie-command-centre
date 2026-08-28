@@ -162,6 +162,58 @@ async function ingestImport(req, env) {
   return J({ ok: true, rows });
 }
 
+/* Work out what a dropped CSV actually is from its own header row.
+   The alternative is asking the person uploading to pick from a list, and the whole
+   point of the upload is that somebody in the office does it in ten seconds without
+   thinking. Tradify's export filenames are not stable enough to match on. */
+function sniffSource(header) {
+  const h = (header || "").toLowerCase();
+  const has = (...names) => names.every((n) => h.includes(n));
+  if (has("quote")) return "tradify-quotes";
+  if (has("invoice") && !h.includes("job number")) return "tradify-invoices";
+  if (h.includes("job") && (h.includes("cost") || h.includes("margin") || h.includes("profit")))
+    return "tradify-job-financials";
+  if (h.includes("job")) return "tradify-jobs";
+  if (has("purchase order") || h.includes("bill")) return "tradify-purchases";
+  return null;
+}
+
+// D1 stores the CSV whole so a routine can diff week against week. Cap it well under
+// the row limit and say so plainly rather than failing with a database error.
+const MAX_CSV = 700 * 1024;
+
+async function uploadImport(req, env) {
+  const b = await readJson(req);
+  if (!b || typeof b.csv !== "string" || !b.csv.trim()) {
+    return J({ error: "That file looks empty. Try exporting it again." }, 400);
+  }
+  if (b.csv.length > MAX_CSV) {
+    return J({ error: "That file is larger than 700KB. Export a shorter date range and try again." }, 413);
+  }
+  const lines = b.csv.split("\n").filter((l) => l.trim());
+  if (lines.length < 2) {
+    return J({ error: "That file has no rows in it, only headings." }, 400);
+  }
+  const source = b.source || sniffSource(lines[0]);
+  if (!source) {
+    return J({
+      error: "I could not tell what that export is. It should be a Jobs, Quotes, Invoices or Job Financial export from Tradify.",
+    }, 400);
+  }
+  await env.DB.prepare("INSERT INTO imports (source,filename,rows,csv,period) VALUES (?,?,?,?,?)")
+    .bind(source, b.filename || null, lines.length - 1, b.csv, b.period || null).run();
+  return J({ ok: true, source, rows: lines.length - 1 });
+}
+
+// Freshness per source, for the Home panel. A routine reading stale data is the main
+// failure mode of the whole system, so the age is shown where it cannot be missed.
+async function apiImportStatus(env) {
+  const { results } = await env.DB.prepare(
+    "SELECT source, MAX(added) AS added, COUNT(*) AS n FROM imports GROUP BY source ORDER BY source"
+  ).all();
+  return J(results || []);
+}
+
 async function ingestKb(req, env) {
   const b = await readJson(req);
   if (!b || !b.slug || !b.body) return J({ error: "slug and body are required" }, 400);
@@ -329,6 +381,22 @@ ul.todo .x{opacity:.4;text-decoration:line-through}
 .run .sum{color:var(--dim);font-size:13px;margin-top:7px}
 .run .sum ul{margin:5px 0 0 16px}
 .empty{color:var(--dim);text-align:center;padding:34px 18px;font-size:14px}
+.imp{display:flex;flex-direction:column;gap:11px}
+.imp .row{display:flex;justify-content:space-between;gap:12px;align-items:baseline;
+padding:9px 0;border-bottom:1px solid var(--line)}
+.imp .row:last-of-type{border-bottom:0}
+.imp .row b{font-weight:600;font-size:14px}
+.imp .age{font-size:12.5px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.imp .age.fresh{color:var(--ok)}.imp .age.old{color:var(--warn)}.imp .age.stale{color:var(--alert)}
+.drop{border:1.5px dashed var(--line);border-radius:12px;padding:20px 18px;text-align:center;
+cursor:pointer;transition:border-color .12s,background .12s}
+.drop:hover,.drop.over{border-color:var(--accent);background:var(--card)}
+.drop b{display:block;font-size:14.5px;color:var(--ink);margin-bottom:3px}
+.drop span{font-size:12.5px;color:var(--dim)}
+.drop input{display:none}
+.msg{font-size:13px;padding:9px 12px;border-radius:9px;margin-top:2px}
+.msg.good{background:rgba(31,111,67,.12);color:var(--ok)}
+.msg.bad{background:rgba(179,38,30,.12);color:var(--alert)}
 /* margin:auto is what centres a native modal dialog, and the universal margin:0
    reset above strips it. Without this the modal sits flush in the top-left corner. */
 dialog{border:0;padding:0;background:transparent;max-width:min(940px,94vw);width:100%;margin:auto}
@@ -373,7 +441,7 @@ async function shell(env, url) {
 
   let body;
   if (tab === "home") {
-    body = `<div id="notes"></div><div id="tiles"></div><div id="todos"></div>`;
+    body = `<div id="notes"></div><div id="tiles"></div><div id="todos"></div><div id="imports"></div>`;
   } else if (tab === "reports") {
     body = `<h2>Every run</h2><div class="runs" id="runs"></div>`;
   } else if (known) {
@@ -472,6 +540,64 @@ async function home(){
   }));
 }
 
+// Tradify cannot hand its data over on its own, so somebody drops the export here.
+// The age is the important part: stale numbers presented as current are the one way
+// this dashboard can quietly lie, so freshness is shown before anything else.
+const SRC_LABEL = {
+  'tradify-jobs':'Jobs', 'tradify-quotes':'Quotes', 'tradify-invoices':'Invoices',
+  'tradify-job-financials':'Job financials', 'tradify-purchases':'Purchases and bills'
+};
+function ageOf(iso){
+  const d = Math.floor((Date.now() - new Date(iso.replace(' ','T')+'Z').getTime())/86400000);
+  if(d <= 0) return ['today','fresh'];
+  if(d === 1) return ['yesterday','fresh'];
+  if(d <= 7) return [d+' days ago','fresh'];
+  if(d <= 21) return [d+' days ago','old'];
+  return [d+' days ago','stale'];
+}
+
+async function imports(){
+  const box = document.getElementById('imports');
+  if(!box) return;
+  const rows = await get('/api/import-status') || [];
+  const list = rows.length
+    ? rows.map(r=>{ const [txt,cls] = ageOf(r.added);
+        return '<div class="row"><b>'+esc(SRC_LABEL[r.source]||r.source)+'</b>'+
+               '<span class="age '+cls+'">'+txt+'</span></div>'; }).join('')
+    : '<div class="row"><span style="color:var(--dim);font-size:13.5px">Nothing uploaded yet. '+
+      'The jobs and quotes numbers stay empty until you drop an export in.</span></div>';
+
+  box.innerHTML = '<h2>Tradify exports</h2><div class="card imp">'+list+
+    '<label class="drop" id="drop"><b>Add an export</b>'+
+    '<span>Drop a CSV here, or click to choose one. It works out which export it is.</span>'+
+    '<input type="file" id="file" accept=".csv,text/csv"></label>'+
+    '<div id="msg"></div></div>';
+
+  const drop = document.getElementById('drop');
+  const file = document.getElementById('file');
+  const msg  = document.getElementById('msg');
+  const say = (t,ok)=>{ msg.innerHTML = '<div class="msg '+(ok?'good':'bad')+'">'+esc(t)+'</div>'; };
+
+  async function send(f){
+    if(!f) return;
+    if(!/\.csv$/i.test(f.name)){ say('That is not a CSV. In Tradify choose the export option, not print or PDF.',false); return; }
+    say('Reading '+f.name+'...', true);
+    let text;
+    try { text = await f.text(); } catch(e){ say('Could not read that file. Try downloading it again.',false); return; }
+    const r = await fetch('/api/import-upload',{method:'POST',credentials:'same-origin',
+      headers:{'content-type':'application/json'},
+      body:JSON.stringify({filename:f.name, csv:text})});
+    let j={}; try{ j = await r.json(); }catch(e){}
+    if(r.ok){ say('Saved '+(j.rows||0)+' rows as '+(SRC_LABEL[j.source]||j.source)+'. Monday\u2019s report will use it.', true); imports(); }
+    else { say(j.error || 'That did not upload. Try again in a moment.', false); }
+  }
+
+  file.addEventListener('change', ()=> send(file.files[0]));
+  ['dragenter','dragover'].forEach(e=>drop.addEventListener(e, ev=>{ev.preventDefault();drop.classList.add('over');}));
+  ['dragleave','drop'].forEach(e=>drop.addEventListener(e, ev=>{ev.preventDefault();drop.classList.remove('over');}));
+  drop.addEventListener('drop', ev=> send(ev.dataTransfer.files[0]));
+}
+
 async function reports(){
   const rows = await get('/api/runs?days=30');
   const el = document.getElementById('runs');
@@ -501,7 +627,7 @@ async function publishedPage(){
   const r = await fetch('/p/'+f.dataset.slug,{credentials:'same-origin'});
   f.srcdoc = r.ok ? await r.text() : '<p style="font:14px system-ui;padding:20px">Could not load this page.</p>';
 }
-if(TAB==='home') home(); else if(TAB==='reports') reports(); else publishedPage();
+if(TAB==='home'){ home(); imports(); } else if(TAB==='reports') reports(); else publishedPage();
 </script></body></html>`;
   return new Response(html, { headers: { "content-type": "text/html;charset=utf-8" } });
 }
@@ -552,6 +678,9 @@ export default {
     if (p === "/api/todo" && request.method === "POST" && bearerOk(request, env)) return apiTodoWrite(request, env);
     if (p === "/api/todos" && request.method === "GET" && bearerOk(request, env)) return apiTodos(url, env);
     if (p === "/api/imports" && request.method === "GET" && bearerOk(request, env)) return apiImports(url, env);
+    if (p === "/api/import-status" && request.method === "GET" && bearerOk(request, env)) return apiImportStatus(env);
+    // Cloud routines have no local disk, so they post the CSV in over the bearer too.
+    if (p === "/api/import-upload" && request.method === "POST" && bearerOk(request, env)) return uploadImport(request, env);
     if (p === "/api/kb" && request.method === "GET" && bearerOk(request, env)) return apiKb(env);
 
     /* --- login --- */
@@ -586,6 +715,8 @@ export default {
     if (p === "/api/todo") return apiTodoWrite(request, env);
     if (p === "/api/assistant-queue" || p === "/api/assistant-queue/done") return apiQueue(request, env, url);
     if (p === "/api/imports") return apiImports(url, env);
+    if (p === "/api/import-status") return apiImportStatus(env);
+    if (p === "/api/import-upload" && request.method === "POST") return uploadImport(request, env);
     if (p === "/api/kb") return apiKb(env);
 
     const run = p.match(/^\/run\/(\d+)$/);

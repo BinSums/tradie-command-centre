@@ -71,11 +71,11 @@ python3 "${CLAUDE_PLUGIN_ROOT}/scripts/install-permissions.py" --mcp "mcp__<thei
 **6. Are the exports still coming?**
 
 ```bash
-ls -lt ~/.command-centre/imports/ | head
+bash ~/.command-centre/bin/cc.sh get /api/import-status
 ```
 
-Nothing there at all: the export habit never started, and the jobs and quotes half has never
-worked. Newest file more than 7 days old: it has slipped. More than 21 days: it has stopped.
+Nothing there at all: the upload habit never started, and the jobs and quotes half has never
+worked. Newest upload more than 7 days old: it has slipped. More than 21 days: it has stopped.
 Say which of those three it is, plainly, and walk them through the export again if they want.
 
 **7. Is the dashboard password still working?**
