@@ -465,155 +465,286 @@ async function apiAsk(req, env) {
 /* ---------- pages ---------- */
 
 const CSS = `
+/* ---------------------------------------------------------------------------
+   Three themes, chosen by the owner and remembered in their browser:
+     light  the default, charcoal and their accent on paper
+     dark   the same geometry on near-black
+     hud    the console: teal on deep green-black, for a screen left on
+   Applied as data-theme on <html> by an inline script in the head, so there is
+   no flash of the wrong theme on load.
+
+   The console layer at the bottom of this sheet carries the look. It MUST stay
+   last: same specificity means source order decides, and a rule for .card put
+   above the component that redeclares it loses silently.
+   --------------------------------------------------------------------------- */
+:root{
+  --wrap-max:1180px;
+  --gut:clamp(14px,1.9vw,34px);
+  --bg:#f4f6f6; --card:#fff; --soft:#ecefec; --ink:#141a16; --muted:#69736c;
+  --line:#e0e5e0; --accent:#2c6039; --ok:#2c6039; --warn:#8a5c10; --alert:#9d3527;
+  --pagebg:radial-gradient(122% 96% at 50% 34%,#ffffff 0%,#f7f9f7 52%,#eef2ee 100%);
+  --grid:rgba(20,26,22,.018);
+}
+[data-theme="dark"]{
+  --bg:#0e1116; --card:#161b22; --soft:#1c222b; --ink:#e6edf3; --muted:#8b98a5;
+  --line:#232b36; --accent:#4f9be0; --ok:#5fbf85; --warn:#d3a24f; --alert:#e0776a;
+  --pagebg:radial-gradient(122% 96% at 50% 34%,#151c26 0%,#0f141b 52%,#0a0d12 100%);
+  --grid:rgba(230,237,243,.02);
+}
+[data-theme="hud"]{
+  --bg:#071316; --card:#0b2026; --soft:#0e2a31; --ink:#c8e9f0; --muted:#5b93a3;
+  --line:#144752; --accent:#3fa8bd; --ok:#4fc08a; --warn:#cfa051; --alert:#e0776a;
+  --pagebg:radial-gradient(122% 96% at 50% 34%,#0f2730 0%,#081518 52%,#04090b 100%);
+  --grid:rgba(200,233,240,.0196);
+}
+@media(min-width:1400px){:root{--wrap-max:1330px}}
+@media(min-width:1700px){:root{--wrap-max:1560px}}
+@media(min-width:2100px){:root{--wrap-max:1840px}}
+@media(min-width:2600px){:root{--wrap-max:2200px}}
+
 *{box-sizing:border-box;margin:0;padding:0}
-:root{--bg:#f6f6f3;--card:#fff;--ink:#14140f;--dim:#6f6e66;--line:#e3e2da;--accent:#1f6f43;
---ok:#1f6f43;--warn:#a8730c;--alert:#b3261e;--info:#5b5a53;--radius:14px}
-@media (prefers-color-scheme:dark){:root{--bg:#121210;--card:#1b1b18;--ink:#f2f1ea;--dim:#9c9a90;
---line:#2c2c27;--accent:#4bb079;--ok:#4bb079;--warn:#d59b2a;--alert:#e2685c;--info:#8b8a82}}
-body{background:var(--bg);color:var(--ink);font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
--webkit-font-smoothing:antialiased;padding-bottom:env(safe-area-inset-bottom)}
+html{color-scheme:light}
+[data-theme="dark"],[data-theme="hud"]{color-scheme:dark}
+/* The gradient is the PAGE background, not a panel's, so nothing ends in a hard
+   rectangle where a surface stops. The grid is a layer of the same declaration:
+   split into two rules and the more specific one silently replaces the other. */
+body{
+  background:
+    repeating-linear-gradient(0deg,var(--grid) 0 1px,transparent 1px 46px) fixed,
+    repeating-linear-gradient(90deg,var(--grid) 0 1px,transparent 1px 46px) fixed,
+    var(--pagebg) fixed, var(--bg);
+  color:var(--ink);min-height:100dvh;
+  font:14px/1.6 var(--con-read);-webkit-font-smoothing:antialiased;
+  padding-bottom:env(safe-area-inset-bottom)}
 a{color:inherit}
-header{position:sticky;top:0;z-index:20;background:var(--bg);border-bottom:1px solid var(--line);
-padding:14px 18px calc(14px + env(safe-area-inset-top)) 18px}
-.brand{font-weight:650;letter-spacing:-.02em;font-size:17px}
-.sub{color:var(--dim);font-size:12.5px;margin-top:1px}
-nav{display:flex;gap:4px;overflow-x:auto;padding:10px 14px 0;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+
+header{position:sticky;top:0;z-index:20;backdrop-filter:blur(9px);
+  background:color-mix(in srgb,var(--bg) 78%,transparent);
+  border-bottom:1px solid var(--line);
+  padding:13px var(--gut) 0 var(--gut);padding-top:calc(13px + env(safe-area-inset-top))}
+.hrow{max-width:var(--wrap-max);margin:0 auto;display:flex;align-items:baseline;gap:14px}
+.brand{font-family:var(--con-mono);font-weight:650;letter-spacing:.02em;font-size:15px}
+.sub{color:var(--muted);font-size:11px;font-family:var(--con-fig);margin-left:auto;
+  letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
+nav{max-width:var(--wrap-max);margin:0 auto;display:flex;gap:3px;overflow-x:auto;
+  padding:9px 0 0;scrollbar-width:none;justify-content:center}
 nav::-webkit-scrollbar{display:none}
-nav a{flex:0 0 auto;padding:7px 13px;border-radius:99px;font-size:13.5px;color:var(--dim);text-decoration:none;white-space:nowrap}
-nav a.on{background:var(--ink);color:var(--bg);font-weight:550}
-main{max-width:1080px;margin:0 auto;padding:18px 14px 60px}
-h2{font-size:12px;text-transform:uppercase;letter-spacing:.09em;color:var(--dim);font-weight:650;margin:26px 0 10px}
-h2:first-child{margin-top:4px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:15px 17px}
-.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(158px,1fr));gap:10px}
-.tile .k{font-size:11.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em}
-.tile .v{font-size:25px;font-weight:640;letter-spacing:-.03em;margin-top:5px;font-variant-numeric:tabular-nums}
-.tile .d{font-size:12px;margin-top:3px;color:var(--dim)}
+nav a{flex:0 0 auto;padding:7px 14px;border-radius:var(--con-r) var(--con-r) 0 0;
+  font-family:var(--con-mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--muted);text-decoration:none;white-space:nowrap;border:1px solid transparent;
+  border-bottom:0}
+nav a:hover{color:var(--ink)}
+nav a.on{color:var(--ink);border-color:var(--con-line);
+  background:linear-gradient(180deg,var(--con-fill1),var(--con-fill2))}
+@media(max-width:900px){nav{justify-content:flex-start}}
+
+main{max-width:var(--wrap-max);margin:0 auto;padding:22px var(--gut) 80px}
+h2{font-family:var(--con-mono);font-size:9.5px;text-transform:uppercase;letter-spacing:.16em;
+  color:var(--con-label);font-weight:650;margin:26px 0 10px}
+h2:first-child{margin-top:2px}
+h3{font-family:var(--con-mono);font-size:13px;font-weight:650;letter-spacing:.01em;color:var(--ink)}
+
+.seg{display:flex;gap:0;border:1px solid var(--con-line);border-radius:var(--con-r);overflow:hidden}
+.seg button{background:transparent;border:0;color:var(--muted);cursor:pointer;
+  font-family:var(--con-mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;
+  padding:6px 10px}
+.seg button:hover{color:var(--ink)}
+.seg button.on{background:var(--accent);color:#fff}
+[data-theme="hud"] .seg button.on,[data-theme="dark"] .seg button.on{color:#04090b}
+
+.card{border:1px solid var(--con-line);border-radius:var(--con-r);padding:15px 17px;
+  background:linear-gradient(180deg,var(--con-fill1),var(--con-fill2));position:relative}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(clamp(150px,15vw,220px),1fr));gap:10px}
+.tile .k{font-family:var(--con-mono);font-size:9.5px;color:var(--con-label);
+  text-transform:uppercase;letter-spacing:.16em}
+.tile .v{font-family:var(--con-fig);font-size:25px;font-weight:650;letter-spacing:-.02em;
+  margin-top:6px;font-variant-numeric:tabular-nums;color:var(--ink)}
+.tile .d{font-family:var(--con-fig);font-size:11px;margin-top:3px;color:var(--muted);
+  font-variant-numeric:tabular-nums}
 .up{color:var(--ok)}.down{color:var(--alert)}
-.note{border-left:3px solid var(--line);padding:11px 15px;background:var(--card);border-radius:0 var(--radius) var(--radius) 0;
-border-top:1px solid var(--line);border-right:1px solid var(--line);border-bottom:1px solid var(--line);margin-bottom:9px}
-.note.do-now{border-left-color:var(--alert)}.note.watch{border-left-color:var(--warn)}.note.good{border-left-color:var(--ok)}
-.note .t{font-weight:600}
-.note .b{color:var(--dim);font-size:13.5px;margin-top:3px}
-.note .m{font-size:12px;color:var(--dim);margin-top:5px;font-variant-numeric:tabular-nums}
-.chip{display:inline-block;font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--dim);margin-bottom:4px}
+
+.note{border:1px solid var(--con-line);border-left-width:2px;border-radius:var(--con-r);
+  padding:11px 15px;margin-bottom:9px;
+  background:linear-gradient(180deg,var(--con-fill1),var(--con-fill2))}
+.note.do-now{border-left-color:var(--alert)}
+.note.watch{border-left-color:var(--warn)}
+.note.good{border-left-color:var(--ok)}
+.note .t{font-weight:600;color:var(--ink)}
+.note .b{color:var(--muted);font-size:13.5px;margin-top:3px}
+.note .m{font-family:var(--con-fig);font-size:11.5px;color:var(--muted);margin-top:5px;
+  font-variant-numeric:tabular-nums}
+.chip{display:inline-block;font-family:var(--con-mono);font-size:9.5px;text-transform:uppercase;
+  letter-spacing:.16em;color:var(--con-label);margin-bottom:4px}
+
 ul.todo{list-style:none}
 ul.todo li{display:flex;gap:11px;align-items:flex-start;padding:11px 0;border-bottom:1px solid var(--line)}
 ul.todo li:last-child{border-bottom:0}
 ul.todo input{margin-top:3px;width:17px;height:17px;accent-color:var(--accent);flex:0 0 auto}
 ul.todo .x{opacity:.4;text-decoration:line-through}
 .p1{color:var(--alert);font-weight:640}
-.runs{display:grid;grid-template-columns:repeat(auto-fill,minmax(285px,1fr));gap:11px}
+
+.runs{display:grid;grid-template-columns:repeat(auto-fill,minmax(clamp(280px,23vw,420px),1fr));gap:11px}
 .run{cursor:pointer;transition:transform .08s ease}
 .run:active{transform:scale(.99)}
 .run .top{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
-.run .ti{font-weight:600;font-size:14.5px}
-.run .when{font-size:11.5px;color:var(--dim);white-space:nowrap}
-.dot{display:inline-block;width:7px;height:7px;border-radius:99px;margin-right:6px;vertical-align:middle}
-.dot.ok{background:var(--ok)}.dot.warn{background:var(--warn)}.dot.alert{background:var(--alert)}.dot.info{background:var(--info)}
-.run .sum{color:var(--dim);font-size:13px;margin-top:7px}
+.run .ti{font-family:var(--con-mono);font-weight:650;font-size:13px}
+.run .when{font-family:var(--con-fig);font-size:10.5px;color:var(--muted);white-space:nowrap;
+  font-variant-numeric:tabular-nums}
+.dot{display:inline-block;width:7px;height:7px;border-radius:99px;margin-right:7px;vertical-align:middle}
+.dot.ok{background:var(--ok)}.dot.warn{background:var(--warn)}
+.dot.alert{background:var(--alert)}.dot.info{background:var(--muted)}
+.run .sum{color:var(--muted);font-size:13px;margin-top:7px}
 .run .sum ul{margin:5px 0 0 16px}
-.empty{color:var(--dim);text-align:center;padding:34px 18px;font-size:14px}
-/* The Board. A console, not a page: dense rows, everything visible at once, no clicking.
-   Always dark, on purpose, because it is meant to be left open on a screen in the office
-   and a light panel glowing across a workshop is useless. */
-.board{--bk:#0d1512;--bp:#121c18;--bl:#1e2f28;--bv:#e8f4ec;--bd:#5d7a6c;--bt:#7fb894;
-background:var(--bk);color:var(--bv);border-radius:14px;padding:18px 16px 20px;
-display:flex;flex-direction:column;gap:16px}
-.board .grp{letter-spacing:.18em;font-size:8.5px;text-transform:uppercase;color:var(--bt);
-opacity:.85;margin-bottom:9px;font-weight:600}
-/* align-items:start stops a pane with two metrics stretching to match one with six,
-   which left half the Board as empty boxes. */
-.board .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(228px,1fr));gap:14px;align-items:start}
-.board .pane{border:1px solid var(--bl);border-radius:7px;padding:13px 15px 15px;
-background:linear-gradient(180deg,rgba(24,38,32,.6),rgba(10,18,15,.6))}
-.board .mrow{display:flex;justify-content:space-between;align-items:baseline;
-font-size:13.5px;margin:9px 0 4px;gap:10px}
-.board .ml{color:var(--bd);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;
-white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.board .mv{color:var(--bv);font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
-.board .mv i{font-style:normal;font-size:10.5px;font-weight:500;margin-left:6px}
-.board .mv i.up{color:#5fbf85}.board .mv i.dn{color:#e0776a}
-.board .bar{height:4px;background:#0a1a14;border-radius:2px;overflow:hidden}
-.board .fl{height:100%;background:linear-gradient(90deg,#2f7a52,#5fbf85);border-radius:2px;
-transition:width .5s ease}
-.board .fl.warn{background:linear-gradient(90deg,#8a6a1c,#cfa051)}
-.board .fl.bad{background:linear-gradient(90deg,#8a3226,#e0776a)}
-.board .flag{border-left:2px solid var(--bl);padding:7px 0 7px 11px;margin-bottom:9px}
-.board .flag:last-child{margin-bottom:0}
-.board .flag.now{border-left-color:#e0776a}
-.board .flag.watch{border-left-color:#cfa051}
-.board .flag.good{border-left-color:#5fbf85}
-.board .flag b{display:block;font-size:13px;font-weight:600;line-height:1.35}
-.board .flag span{display:block;font-size:11px;color:var(--bd);
-font-variant-numeric:tabular-nums;margin-top:2px}
-.board .todo{font-size:12.5px;padding:6px 0;border-bottom:1px solid var(--bl);
-display:flex;gap:9px;align-items:baseline}
-.board .todo:last-child{border-bottom:0}
-.board .todo em{font-style:normal;color:#e0776a;font-size:9px;letter-spacing:.1em}
-.board .foot{display:flex;justify-content:space-between;font-size:10px;letter-spacing:.1em;
-text-transform:uppercase;color:var(--bd);border-top:1px solid var(--bl);padding-top:11px}
-.board .none{color:var(--bd);font-size:12.5px}
-.ask{display:flex;flex-direction:column;gap:12px}
-.ask .box{display:flex;gap:8px}
-.ask textarea{flex:1;min-height:52px;max-height:170px;padding:12px 14px;border:1px solid var(--line);
-border-radius:11px;background:var(--card);color:var(--ink);font:15px/1.5 inherit;resize:vertical}
-.ask textarea:focus{outline:2px solid var(--accent);outline-offset:1px}
-.ask button.go{flex:0 0 auto;align-self:flex-end;padding:12px 18px;border:0;border-radius:11px;
-background:var(--ink);color:var(--bg);font-size:14.5px;font-weight:600;cursor:pointer}
-.ask button.go:disabled{opacity:.45;cursor:default}
-.ask .sugg{display:flex;flex-wrap:wrap;gap:7px}
-.ask .sugg button{background:var(--card);border:1px solid var(--line);color:var(--dim);
-border-radius:99px;padding:7px 13px;font-size:12.5px;cursor:pointer;text-align:left}
-.ask .sugg button:hover{color:var(--ink);border-color:var(--dim)}
-.ask .ans{white-space:pre-wrap;line-height:1.62;font-size:15px}
-.ask .ans.err{color:var(--alert)}
-.ask .qline{font-size:13px;color:var(--dim);margin-bottom:7px}
+.empty{color:var(--muted);text-align:center;padding:34px 18px;font-size:13.5px}
+
 .imp{display:flex;flex-direction:column;gap:11px}
 .imp .row{display:flex;justify-content:space-between;gap:12px;align-items:baseline;
-padding:9px 0;border-bottom:1px solid var(--line)}
+  padding:9px 0;border-bottom:1px solid var(--line)}
 .imp .row:last-of-type{border-bottom:0}
-.imp .row b{font-weight:600;font-size:14px}
-.imp .age{font-size:12.5px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.imp .row b{font-family:var(--con-mono);font-weight:600;font-size:12px;
+  text-transform:uppercase;letter-spacing:.12em}
+.imp .age{font-family:var(--con-fig);font-size:11.5px;font-variant-numeric:tabular-nums;white-space:nowrap}
 .imp .age.fresh{color:var(--ok)}.imp .age.old{color:var(--warn)}.imp .age.stale{color:var(--alert)}
-.drop{border:1.5px dashed var(--line);border-radius:12px;padding:20px 18px;text-align:center;
-cursor:pointer;transition:border-color .12s,background .12s}
-.drop:hover,.drop.over{border-color:var(--accent);background:var(--card)}
-.drop b{display:block;font-size:14.5px;color:var(--ink);margin-bottom:3px}
-.drop span{font-size:12.5px;color:var(--dim)}
+.drop{border:1px dashed var(--con-line);border-radius:var(--con-r);padding:20px 18px;
+  text-align:center;cursor:pointer;transition:border-color .12s}
+.drop:hover,.drop.over{border-color:var(--accent)}
+.drop b{display:block;font-family:var(--con-mono);font-size:12px;text-transform:uppercase;
+  letter-spacing:.12em;color:var(--ink);margin-bottom:4px}
+.drop span{font-size:12.5px;color:var(--muted)}
 .drop input{display:none}
-.msg{font-size:13px;padding:9px 12px;border-radius:9px;margin-top:2px}
-.msg.good{background:rgba(31,111,67,.12);color:var(--ok)}
-.msg.bad{background:rgba(179,38,30,.12);color:var(--alert)}
-/* margin:auto is what centres a native modal dialog, and the universal margin:0
-   reset above strips it. Without this the modal sits flush in the top-left corner. */
+.msg{font-size:13px;padding:9px 12px;border-radius:var(--con-r);margin-top:2px}
+.msg.good{background:color-mix(in srgb,var(--ok) 14%,transparent);color:var(--ok)}
+.msg.bad{background:color-mix(in srgb,var(--alert) 14%,transparent);color:var(--alert)}
+
+.ask{display:flex;flex-direction:column;gap:12px}
+.ask .box{display:flex;gap:8px}
+.ask textarea{flex:1;min-height:52px;max-height:170px;padding:12px 14px;
+  border:1px solid var(--con-line);border-radius:var(--con-r);background:var(--bg);
+  color:var(--ink);font:15px/1.5 var(--con-read);resize:vertical}
+.ask textarea:focus{outline:1px solid var(--accent);outline-offset:1px}
+.ask button.go{flex:0 0 auto;align-self:flex-end;padding:12px 18px;border:0;
+  border-radius:var(--con-r);background:var(--accent);color:#fff;
+  font-family:var(--con-mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+  font-weight:650;cursor:pointer}
+[data-theme="hud"] .ask button.go,[data-theme="dark"] .ask button.go{color:#04090b}
+.ask button.go:disabled{opacity:.45;cursor:default}
+.ask .sugg{display:flex;flex-wrap:wrap;gap:7px}
+.ask .sugg button{background:transparent;border:1px solid var(--con-line);color:var(--muted);
+  border-radius:99px;padding:7px 13px;font-size:12.5px;cursor:pointer;text-align:left;
+  font-family:var(--con-read)}
+.ask .sugg button:hover{color:var(--ink);border-color:var(--accent)}
+.ask .ans{white-space:pre-wrap;line-height:1.62;font-size:15px}
+.ask .ans.err{color:var(--alert)}
+.ask .qline{font-family:var(--con-fig);font-size:12px;color:var(--muted);margin-bottom:7px}
+
+.board{background:transparent;color:var(--ink);display:flex;flex-direction:column;gap:16px}
+.board .grp{font-family:var(--con-mono);letter-spacing:.16em;font-size:9.5px;
+  text-transform:uppercase;color:var(--con-label);margin-bottom:9px;font-weight:650}
+.board .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(clamp(220px,20vw,340px),1fr));
+  gap:14px;align-items:start}
+.board .pane{border:1px solid var(--con-line);border-radius:var(--con-r);padding:13px 15px 15px;
+  background:linear-gradient(180deg,var(--con-fill1),var(--con-fill2));position:relative}
+.board .mrow{display:flex;justify-content:space-between;align-items:baseline;
+  font-size:13.5px;margin:9px 0 4px;gap:10px}
+.board .ml{font-family:var(--con-mono);color:var(--con-label);font-size:9.5px;
+  letter-spacing:.16em;text-transform:uppercase;white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis}
+.board .mv{font-family:var(--con-fig);color:var(--ink);font-weight:700;
+  font-variant-numeric:tabular-nums;white-space:nowrap}
+.board .mv i{font-style:normal;font-size:10.5px;font-weight:500;margin-left:6px}
+.board .mv i.up{color:var(--ok)}.board .mv i.dn{color:var(--alert)}
+.board .bar{height:4px;background:var(--soft);border-radius:2px;overflow:hidden}
+.board .fl{height:100%;background:var(--ok);border-radius:2px;transition:width .5s ease}
+.board .fl.warn{background:var(--warn)}
+.board .fl.bad{background:var(--alert)}
+.board .flag{border-left:2px solid var(--line);padding:7px 0 7px 11px;margin-bottom:9px}
+.board .flag:last-child{margin-bottom:0}
+.board .flag.now{border-left-color:var(--alert)}
+.board .flag.watch{border-left-color:var(--warn)}
+.board .flag.good{border-left-color:var(--ok)}
+.board .flag b{display:block;font-size:13px;font-weight:600;line-height:1.35}
+.board .flag span{display:block;font-family:var(--con-fig);font-size:11px;color:var(--muted);
+  font-variant-numeric:tabular-nums;margin-top:2px}
+.board .todo{font-size:12.5px;padding:6px 0;border-bottom:1px solid var(--line);
+  display:flex;gap:9px;align-items:baseline}
+.board .todo:last-child{border-bottom:0}
+.board .todo em{font-style:normal;color:var(--alert);font-family:var(--con-mono);
+  font-size:9px;letter-spacing:.12em}
+.board .foot{display:flex;justify-content:space-between;font-family:var(--con-mono);
+  font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--con-label);
+  border-top:1px solid var(--line);padding-top:11px}
+.board .none{color:var(--muted);font-size:12.5px}
+
 dialog{border:0;padding:0;background:transparent;max-width:min(940px,94vw);width:100%;margin:auto}
-dialog::backdrop{background:rgba(0,0,0,.55)}
-.modal{background:var(--card);border-radius:var(--radius);overflow:hidden;display:flex;flex-direction:column;max-height:88vh}
-.modal .h{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 17px;border-bottom:1px solid var(--line)}
+dialog::backdrop{background:rgba(0,0,0,.6)}
+.modal{background:var(--card);border:1px solid var(--con-line);border-radius:var(--con-r);
+  overflow:hidden;display:flex;flex-direction:column;max-height:88vh}
+.modal .h{display:flex;justify-content:space-between;align-items:center;gap:12px;
+  padding:13px 17px;border-bottom:1px solid var(--con-line)}
+.modal .h b{font-family:var(--con-mono);font-size:12px;text-transform:uppercase;letter-spacing:.12em}
 .modal iframe{border:0;width:100%;height:74vh;background:#fff}
-button.x{background:var(--line);border:0;color:var(--ink);border-radius:99px;width:29px;height:29px;font-size:17px;cursor:pointer;flex:0 0 auto}
-form.login{max-width:330px;margin:16vh auto;padding:0 20px}
-form.login input{width:100%;padding:13px 15px;border:1px solid var(--line);border-radius:11px;background:var(--card);color:var(--ink);font-size:16px}
-form.login button{width:100%;margin-top:10px;padding:13px;border:0;border-radius:11px;background:var(--ink);color:var(--bg);font-size:15px;font-weight:600;cursor:pointer}
-.err{color:var(--alert);font-size:13.5px;margin-top:10px;text-align:center}
-/* White, not var(--card). A routine authors these pages as plain light HTML with
-   no colours of its own, so a dark frame renders black text on a dark ground.
-   Matching the modal keeps every published page legible in both themes. */
-iframe.page{border:0;width:100%;height:calc(100vh - 190px);background:#fff;border-radius:var(--radius);border:1px solid var(--line)}
+button.x{background:var(--soft);border:0;color:var(--ink);border-radius:99px;width:29px;
+  height:29px;font-size:17px;cursor:pointer;flex:0 0 auto}
+
+form.login{max-width:340px;margin:16vh auto;padding:0 20px}
+form.login .card{padding:24px 22px}
+form.login input{width:100%;padding:13px 15px;border:1px solid var(--con-line);
+  border-radius:var(--con-r);background:var(--bg);color:var(--ink);font-size:16px}
+form.login button{width:100%;margin-top:10px;padding:13px;border:0;border-radius:var(--con-r);
+  background:var(--accent);color:#fff;font-family:var(--con-mono);font-size:11px;
+  letter-spacing:.16em;text-transform:uppercase;font-weight:650;cursor:pointer}
+[data-theme="hud"] form.login button,[data-theme="dark"] form.login button{color:#04090b}
+.err{color:var(--alert);font-size:13px;margin-top:10px;text-align:center}
+
+iframe.page{border:0;width:100%;height:calc(100dvh - 200px);background:#fff;
+  border-radius:var(--con-r);border:1px solid var(--con-line)}
+
+/* ---------------------------------------------------------------------------
+   THE CONSOLE LAYER. Keep this last in the sheet.
+   Mono for chrome, sans for prose: labels, numbers, buttons and headings carry
+   the look, but a sentence set in tracked mono wraps to five lines in a card
+   that fits it on two.
+   The glowing tick sits on TOP-LEVEL panels only. On all forty surfaces a
+   signature becomes wallpaper.
+   --------------------------------------------------------------------------- */
+:root{
+  --con-mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  --con-fig:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  --con-read:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --con-r:6px;
+  --con-line:#dfe3ea; --con-fill1:#ffffff; --con-fill2:#fafbfc;
+  --con-label:#6b7686; --con-glow:none;
+}
+[data-theme="dark"]{
+  --con-line:#243040; --con-fill1:rgba(22,27,34,.72); --con-fill2:rgba(14,17,22,.72);
+  --con-label:#8b98a5; --con-glow:0 0 8px var(--accent);
+}
+[data-theme="hud"]{
+  --con-line:#175059; --con-fill1:rgba(11,33,40,.6); --con-fill2:rgba(6,18,22,.6);
+  --con-label:#58b7c9; --con-glow:0 0 8px var(--accent);
+}
+main > .card::before,.board .pane::before,.tiles .card::before{
+  content:"";position:absolute;left:-1px;top:9px;width:2px;height:34px;
+  background:var(--accent);box-shadow:var(--con-glow);border-radius:2px;opacity:.9}
+.tiles .card::before,.board .pane::before{height:22px;top:7px}
 `;
+
+/* Runs before the stylesheet paints, so the chosen theme is on <html> from the
+   first frame and there is no flash of the wrong one. Single-quoted on the
+   outside: a backtick in here would end the CSS template literal above. */
+const THEME_BOOT = '<script>(function(){try{var t=localStorage.getItem("cc-theme");if(t&&t!=="light")document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</scr'+'ipt>';
 
 function loginPage(env, error) {
   const c = cfg(env);
   return new Response(
-    `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${esc(c.name)}</title><style>${CSS}</style></head><body>
-<form class="login" method="POST" action="/login">
-<div class="brand" style="text-align:center;margin-bottom:16px">${esc(c.name)}</div>
+    `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>${esc(c.name)}</title>` + THEME_BOOT + `<style>${CSS}</style></head><body>
+<form class="login" method="POST" action="/login"><div class="card">
+<div class="brand" style="text-align:center;margin-bottom:15px">${esc(c.name)}</div>
 <input type="password" name="password" placeholder="Password" autofocus autocomplete="current-password">
 <button type="submit">Sign in</button>
 ${error ? `<div class="err">${esc(error)}</div>` : ""}
-</form></body></html>`,
+</div></form></body></html>`,
     { status: error ? 401 : 200, headers: { "content-type": "text/html;charset=utf-8" } }
   );
 }
@@ -650,17 +781,41 @@ async function shell(env, url) {
 
   const html = `<!doctype html><html><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#f6f6f3" media="(prefers-color-scheme:light)">
-<meta name="theme-color" content="#121210" media="(prefers-color-scheme:dark)">
-<link rel="manifest" href="/manifest.webmanifest"><title>${esc(c.name)}</title>
+<link rel="manifest" href="/manifest.webmanifest"><title>${esc(c.name)}</title>` + THEME_BOOT + `
 <style>${CSS}</style></head><body>
-<header><div class="brand">${esc(c.name)}</div><div class="sub" id="stamp">&nbsp;</div>
+<header><div class="hrow"><div class="brand">${esc(c.name)}</div>
+<div class="seg" id="themes" role="group" aria-label="Theme">
+<button type="button" data-t="light">Light</button>
+<button type="button" data-t="dark">Dark</button>
+<button type="button" data-t="hud">Console</button></div>
+<div class="sub" id="stamp">&nbsp;</div></div>
 <nav>${nav}</nav></header>
 <main>${body}</main>
 <dialog id="dlg"><div class="modal"><div class="h"><b id="dt"></b><button class="x" onclick="dlg.close()">&times;</button></div>
 <iframe id="df" sandbox></iframe></div></dialog>
 <script>
 const TAB = ${JSON.stringify(tab)}, CUR = ${JSON.stringify(c.cur)}, TZ = ${JSON.stringify(c.tz)};
+
+/* Theme is the owner's choice and is remembered per browser, not per device or account:
+   the person on the office screen wants the console, the same person on their phone in
+   the ute usually does not. */
+(function(){
+  var seg = document.getElementById('themes');
+  if(!seg) return;
+  function cur(){ try{ return localStorage.getItem('cc-theme') || 'light'; }catch(e){ return 'light'; } }
+  function paint(t){
+    if(t==='light') document.documentElement.removeAttribute('data-theme');
+    else document.documentElement.setAttribute('data-theme', t);
+    seg.querySelectorAll('button').forEach(function(b){ b.classList.toggle('on', b.dataset.t===t); });
+  }
+  seg.querySelectorAll('button').forEach(function(b){
+    b.addEventListener('click', function(){
+      try{ localStorage.setItem('cc-theme', b.dataset.t); }catch(e){}
+      paint(b.dataset.t);
+    });
+  });
+  paint(cur());
+})();
 const money = n => new Intl.NumberFormat('en-AU',{style:'currency',currency:CUR,maximumFractionDigits:0}).format(n);
 const esc = s => String(s==null?'':s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
 const get = p => fetch(p,{credentials:'same-origin'}).then(r=>r.ok?r.json():null).catch(()=>null);
