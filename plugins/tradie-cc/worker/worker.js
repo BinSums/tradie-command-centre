@@ -147,7 +147,7 @@ async function ingestPage(req, env) {
   if (!b || !b.slug || !b.html) return J({ error: "slug and html are required" }, 400);
   if (!/^[a-z0-9-]{1,40}$/.test(b.slug)) return J({ error: "slug must be lowercase letters, digits and hyphens" }, 400);
   // Reserved: a published page using one of these would shadow a built-in tab.
-  if (["home", "board", "ask", "reports"].includes(b.slug)) return J({ error: "that slug is reserved" }, 400);
+  if (["home", "board", "ask", "reports", "console"].includes(b.slug)) return J({ error: "that slug is reserved" }, 400);
   await env.DB.prepare(
     "INSERT INTO pages (slug,title,html,nav,sort,updated_at) VALUES (?,?,?,?,?,?) " +
     "ON CONFLICT(slug) DO UPDATE SET title=excluded.title, html=excluded.html, nav=excluded.nav, sort=excluded.sort, updated_at=excluded.updated_at"
@@ -462,6 +462,33 @@ async function apiAsk(req, env) {
   }
 }
 
+/* The console page markup. Used by the Console tab and, with the chrome stripped,
+   by the standalone /console route, so the screen in the office and the tab in the
+   dashboard are literally the same page. */
+const CONSOLE_BODY = (c) => `<div class="con">
+  <div class="con-head">
+    <div><div class="con-name">${esc((c.name || "").toUpperCase())}</div>
+    <div class="con-sub" id="con-sub">Standing by</div></div>
+    <div class="con-clock"><div class="con-time" id="con-time">--:--</div>
+    <div class="con-date" id="con-date"></div></div>
+  </div>
+  <div class="con-main">
+    <div class="con-col" id="con-left"></div>
+    <div class="con-centre">
+      <div class="con-orbwrap"><canvas id="orb" width="900" height="900"></canvas></div>
+      <div class="con-state" id="con-state">Ask me anything about the business</div>
+      <div class="con-ans" id="con-ans"></div>
+    </div>
+    <div class="con-col" id="con-right"></div>
+  </div>
+  <div class="con-ctrl">
+    <input class="con-in" id="con-q" placeholder="Who owes us the most right now?" autocomplete="off">
+    <button class="con-btn pri" id="con-go">Ask</button>
+    <button class="con-btn" id="con-mic" title="Speak your question">Voice</button>
+  </div>
+  <div class="con-foot"><span id="con-fresh">&nbsp;</span><span id="con-stamp">&nbsp;</span></div>
+</div>`;
+
 /* ---------- pages ---------- */
 
 const CSS = `
@@ -727,6 +754,99 @@ main > .card::before,.board .pane::before,.tiles .card::before{
   content:"";position:absolute;left:-1px;top:9px;width:2px;height:34px;
   background:var(--accent);box-shadow:var(--con-glow);border-radius:2px;opacity:.9}
 .tiles .card::before,.board .pane::before{height:22px;top:7px}
+
+/* ---------------------------------------------------------------------------
+   THE CONSOLE PAGE. Three columns with the assistant in the middle: numbers
+   down the left, the orb and the input in the centre, transcript and to-do
+   down the right. Built to be left running on a screen in the office.
+   Grid rows are minmax(0,1fr) so the two list panels can actually scroll
+   inside their columns instead of stretching the page.
+   --------------------------------------------------------------------------- */
+.con{min-height:100dvh;display:flex;flex-direction:column;position:relative;z-index:2}
+.con-head{display:flex;align-items:flex-start;justify-content:space-between;
+  gap:16px;padding:18px 26px 4px}
+.con-name{font-family:var(--con-mono);font-size:19px;font-weight:800;letter-spacing:.34em;
+  color:var(--ink);text-shadow:var(--con-glow)}
+.con-sub{font-family:var(--con-mono);font-size:9px;letter-spacing:.26em;color:var(--con-label);
+  text-transform:uppercase;margin-top:4px}
+.con-clock{text-align:right;font-family:var(--con-fig);font-variant-numeric:tabular-nums}
+.con-time{font-size:22px;font-weight:700;color:var(--ink);letter-spacing:.04em}
+.con-date{font-size:9px;letter-spacing:.26em;color:var(--con-label);margin-top:3px;text-transform:uppercase}
+.con-main{display:grid;grid-template-columns:300px 1fr 300px;gap:14px;
+  grid-template-rows:minmax(0,1fr);padding:8px 26px 0;flex:1;align-items:stretch;min-height:0}
+.con-col{min-height:0;display:flex;flex-direction:column;gap:12px;overflow:visible}
+.con-centre{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
+  min-width:0;max-width:100%}
+.con-orbwrap{position:relative;width:min(58vh,100%,520px);aspect-ratio:1;margin-top:-6px}
+.con-orbwrap canvas{width:100%;height:100%;display:block}
+.con-state{font-family:var(--con-mono);font-size:9.5px;letter-spacing:.24em;text-transform:uppercase;
+  color:var(--con-label);margin-top:2px;min-height:14px}
+.con-ans{margin-top:14px;max-width:min(560px,92%);text-align:center;font-size:14.5px;
+  line-height:1.62;color:var(--ink);white-space:pre-wrap}
+.con-ans.err{color:var(--alert)}
+.con-pane{border:1px solid var(--con-line);border-radius:var(--con-r);
+  background:linear-gradient(180deg,var(--con-fill1),var(--con-fill2));
+  padding:12px 14px;position:relative;display:flex;flex-direction:column;min-height:0}
+.con-pane::before{content:"";position:absolute;left:-1px;top:9px;width:2px;height:26px;
+  background:var(--accent);box-shadow:var(--con-glow);border-radius:2px;opacity:.9}
+.con-pane > h4{font-family:var(--con-mono);font-size:9px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--con-label);font-weight:650;margin-bottom:9px;flex:0 0 auto}
+.con-grow{flex:1 1 0;overflow-y:auto;scrollbar-width:none;min-height:0}
+.con-grow::-webkit-scrollbar{display:none}
+.con-mrow{display:flex;justify-content:space-between;align-items:baseline;gap:9px;
+  font-size:13px;margin:8px 0 4px}
+.con-ml{font-family:var(--con-mono);font-size:9px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--con-label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.con-mv{font-family:var(--con-fig);font-weight:700;font-variant-numeric:tabular-nums;
+  color:var(--ink);white-space:nowrap}
+.con-mv i{font-style:normal;font-size:10px;font-weight:500;margin-left:5px}
+.con-mv i.up{color:var(--ok)}.con-mv i.dn{color:var(--alert)}
+.con-bar{height:3px;background:var(--soft);border-radius:2px;overflow:hidden}
+.con-fill{height:100%;background:var(--accent);border-radius:2px;transition:width .5s ease}
+.con-fill.warn{background:var(--warn)}.con-fill.bad{background:var(--alert)}
+.con-line{font-size:11.5px;line-height:1.62;padding:5px 0;border-bottom:1px solid var(--line);
+  display:flex;gap:8px;align-items:baseline}
+.con-line:last-child{border-bottom:0}
+.con-line em{font-style:normal;font-family:var(--con-mono);font-size:8.5px;letter-spacing:.12em;
+  color:var(--con-label);flex:0 0 auto;padding-top:1px}
+.con-line em.now{color:var(--alert)}
+.con-line em.you{color:var(--accent)}
+.con-flag{border-left:2px solid var(--line);padding:6px 0 6px 10px;margin-bottom:8px}
+.con-flag:last-child{margin-bottom:0}
+.con-flag.do-now{border-left-color:var(--alert)}
+.con-flag.watch{border-left-color:var(--warn)}
+.con-flag.good{border-left-color:var(--ok)}
+.con-flag b{display:block;font-size:12.5px;font-weight:600;line-height:1.35}
+.con-flag span{display:block;font-family:var(--con-fig);font-size:10.5px;color:var(--muted);
+  font-variant-numeric:tabular-nums;margin-top:2px}
+.con-ctrl{display:flex;gap:10px;padding:14px 26px 22px;align-items:center;flex-wrap:wrap}
+.con-in{flex:1;min-width:150px;background:var(--bg);border:1px solid var(--con-line);
+  color:var(--ink);font-family:var(--con-read);font-size:13.5px;padding:11px 14px;
+  border-radius:var(--con-r);outline:none}
+.con-in:focus{border-color:var(--accent)}
+.con-btn{background:transparent;border:1px solid var(--con-line);color:var(--con-label);
+  font-family:var(--con-mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;
+  padding:11px 15px;border-radius:var(--con-r);cursor:pointer}
+.con-btn:hover{color:var(--ink);border-color:var(--accent)}
+.con-btn.pri{background:var(--accent);border-color:var(--accent);color:#fff}
+[data-theme="hud"] .con-btn.pri,[data-theme="dark"] .con-btn.pri{color:#04090b}
+.con-btn:disabled{opacity:.4;cursor:default}
+.con-foot{font-family:var(--con-mono);font-size:9px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--con-label);padding:0 26px 18px;display:flex;justify-content:space-between;gap:12px}
+.con-none{color:var(--muted);font-size:11.5px}
+@media(min-width:1500px){
+  .con-main{grid-template-columns:minmax(320px,min(22vw,560px)) 1fr minmax(320px,min(22vw,560px))}
+  .con-orbwrap{width:min(62vh,100%,620px)}
+  .con-ml,.con-pane > h4{font-size:10.5px}
+}
+/* Below the three-column width the orb is the first thing to go: on a phone the
+   numbers and the list are what somebody actually wants. */
+@media(max-width:1080px){
+  .con-main{grid-template-columns:1fr;grid-template-rows:auto;gap:12px;padding:8px 16px 0}
+  .con-orbwrap{width:min(38vh,300px)}
+  .con-grow{max-height:340px}
+  .con-head,.con-ctrl,.con-foot{padding-left:16px;padding-right:16px}
+}
 `;
 
 /* Runs before the stylesheet paints, so the chosen theme is on <html> from the
@@ -749,11 +869,11 @@ ${error ? `<div class="err">${esc(error)}</div>` : ""}
   );
 }
 
-async function shell(env, url) {
+async function shell(env, url, solo) {
   const c = cfg(env);
   const { results: pages } = await env.DB.prepare("SELECT slug,title FROM pages WHERE nav=1 ORDER BY sort, title").all();
-  const tab = url.searchParams.get("t") || "home";
-  const tabs = [{ slug: "home", title: "Home" }, { slug: "board", title: "Board" }, { slug: "ask", title: "Ask" }, ...(pages || []), { slug: "reports", title: "Reports" }];
+  const tab = solo ? "board" : (url.searchParams.get("t") || "home");
+  const tabs = [{ slug: "home", title: "Home" }, { slug: "board", title: "Console" }, { slug: "ask", title: "Ask" }, ...(pages || []), { slug: "reports", title: "Reports" }];
   const nav = tabs.map((t) =>
     `<a href="/?t=${esc(t.slug)}" class="${t.slug === tab ? "on" : ""}">${esc(t.title)}</a>`).join("");
   const known = tabs.some((t) => t.slug === tab);
@@ -762,7 +882,7 @@ async function shell(env, url) {
   if (tab === "home") {
     body = `<div id="notes"></div><div id="tiles"></div><div id="todos"></div><div id="imports"></div>`;
   } else if (tab === "board") {
-    body = `<div id="board" class="board"><div class="none">Loading...</div></div>`;
+    body = CONSOLE_BODY(c);
   } else if (tab === "ask") {
     body = `<h2>Ask about the business</h2><div class="card ask">
 <div class="box"><textarea id="q" placeholder="Who owes us the most right now?" rows="2"></textarea>
@@ -782,14 +902,14 @@ async function shell(env, url) {
   const html = `<!doctype html><html><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <link rel="manifest" href="/manifest.webmanifest"><title>${esc(c.name)}</title>` + THEME_BOOT + `
-<style>${CSS}</style></head><body>
-<header><div class="hrow"><div class="brand">${esc(c.name)}</div>
+<style>${CSS}</style>${solo ? "<style>main{padding:0;max-width:none}</style>" : ""}</head><body>
+${solo ? "" : `<header><div class="hrow"><div class="brand">${esc(c.name)}</div>
 <div class="seg" id="themes" role="group" aria-label="Theme">
 <button type="button" data-t="light">Light</button>
 <button type="button" data-t="dark">Dark</button>
 <button type="button" data-t="hud">Console</button></div>
 <div class="sub" id="stamp">&nbsp;</div></div>
-<nav>${nav}</nav></header>
+<nav>${nav}</nav></header>`}
 <main>${body}</main>
 <dialog id="dlg"><div class="modal"><div class="h"><b id="dt"></b><button class="x" onclick="dlg.close()">&times;</button></div>
 <iframe id="df" sandbox></iframe></div></dialog>
@@ -993,18 +1113,110 @@ function ask(){
   q.focus();
 }
 
-/* The Board: everything on one screen, no clicking, meant to be left open in the office.
-   Modelled on a console rather than a document, because the job is to be glanceable from
-   across a room, not to be read. Refreshes itself so a screen left on stays honest. */
-async function board(){
-  const el = document.getElementById('board');
-  if(!el) return;
+/* THE CONSOLE. Numbers left, the assistant in the middle, what needs attention and
+   the list right. Everything on one screen because the point is to leave it running
+   and glance at it, not to click through it. */
+
+var conBusy = false, conTurns = [];
+
+/* The orb is drawn rather than an image, so it responds to state and stays sharp on a
+   wall screen. The drawn radius is 0.90 of the half-width on purpose: the outer
+   decorations carry a shadowBlur, and at a full half-width radius that bloom is
+   clipped against the canvas edge in a ring right around the orb. No CSS can fix
+   that, because it happens in canvas space at draw time. */
+function orb(){
+  var cv = document.getElementById('orb'); if(!cv) return;
+  var ctx = cv.getContext('2d'), W = cv.width, R = W/2*0.90, C = W/2;
+  var t = 0, energy = 0;
+  var css = getComputedStyle(document.documentElement);
+  function tone(n,f){ return (css.getPropertyValue(n)||'').trim() || f; }
+
+  function draw(){
+    var accent = tone('--accent','#3fa8bd'), label = tone('--con-label','#58b7c9');
+    ctx.clearRect(0,0,W,W);
+    energy += ((conBusy?1:0) - energy) * 0.06;
+    t += 0.0035 + energy*0.018;
+
+    var pulse = 1 + Math.sin(t*2.2)*0.02 + energy*0.06;
+    var cr = R*0.66*pulse;
+    var g = ctx.createRadialGradient(C,C,cr*0.06,C,C,cr);
+    g.addColorStop(0, accent);
+    g.addColorStop(0.30, accent+'aa');
+    g.addColorStop(0.62, accent+'3a');
+    g.addColorStop(1, accent+'00');
+    ctx.globalAlpha = 0.38 + energy*0.30;
+    ctx.beginPath(); ctx.arc(C,C,cr,0,Math.PI*2); ctx.fillStyle = g; ctx.fill();
+
+    /* A complete rim, so there is always a sphere there even when the arcs are on
+       the far side. Without it the thing reads as a few loose strokes. */
+    ctx.globalAlpha = 0.5 + energy*0.3;
+    ctx.beginPath(); ctx.arc(C,C,R*0.955,0,Math.PI*2);
+    ctx.strokeStyle = accent; ctx.lineWidth = W/420;
+    ctx.shadowBlur = W/26; ctx.shadowColor = accent; ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    /* Three arcs, each with its own phase and direction, so they sit apart rather
+       than bunching and never look like one rigid object turning. */
+    var arcs = [[0.955, 1.00, 2.1, 0.85, 0.0],
+                [0.870, -0.61, 1.5, 0.60, 2.3],
+                [0.760, 0.37, 1.0, 0.42, 4.4]];
+    for(var i=0;i<arcs.length;i++){
+      var a = arcs[i], from = t*a[1] + a[4];
+      ctx.beginPath();
+      ctx.arc(C, C, R*a[0], from, from + a[2]);
+      ctx.strokeStyle = accent;
+      ctx.globalAlpha = a[3] * (0.6 + energy*0.4);
+      ctx.lineWidth = W/230; ctx.lineCap = 'round';
+      ctx.shadowBlur = W/28; ctx.shadowColor = accent;
+      ctx.stroke();
+    }
+    ctx.shadowBlur = 0;
+
+    ctx.strokeStyle = label; ctx.lineWidth = Math.max(1.4, W/560);
+    for(var k=0;k<60;k++){
+      var ang = (k/60)*Math.PI*2 - Math.PI/2, lng = (k%5===0) ? R*0.062 : R*0.03;
+      ctx.globalAlpha = (k%5===0) ? 0.75 : 0.34;
+      ctx.beginPath();
+      ctx.moveTo(C+Math.cos(ang)*R, C+Math.sin(ang)*R);
+      ctx.lineTo(C+Math.cos(ang)*(R-lng), C+Math.sin(ang)*(R-lng));
+      ctx.stroke();
+    }
+
+    ctx.globalAlpha = 0.30 + energy*0.35;
+    ctx.strokeStyle = accent; ctx.lineWidth = W/300;
+    ctx.setLineDash([W/90, W/45]);
+    ctx.beginPath(); ctx.arc(C,C,R*0.60, -t*0.8, -t*0.8 + Math.PI*2); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.globalAlpha = 1;
+    requestAnimationFrame(draw);
+  }
+  draw();
+}
+
+function conClock(){
+  var now = new Date();
+  var a = document.getElementById('con-time'), b = document.getElementById('con-date');
+  if(a) a.textContent = new Intl.DateTimeFormat('en-AU',{timeZone:TZ,hour:'2-digit',minute:'2-digit',hour12:false}).format(now);
+  if(b) b.textContent = new Intl.DateTimeFormat('en-AU',{timeZone:TZ,weekday:'long',day:'numeric',month:'long'}).format(now);
+}
+
+function conSay(who, text){
+  conTurns.push({who:who, text:text});
+  if(conTurns.length > 40) conTurns.shift();
+  var box = document.getElementById('con-log');
+  if(!box) return;
+  box.innerHTML = conTurns.map(function(x){
+    return '<div class="con-line"><em class="'+(x.who==='you'?'you':'')+'">'+
+      (x.who==='you'?'YOU':'CC')+'</em><span>'+esc(x.text)+'</span></div>';
+  }).join('');
+  box.scrollTop = box.scrollHeight;
+}
+
+async function conLoad(){
   const [md, nd, todos, imps] = await Promise.all([
     get('/api/metrics?days=90'), get('/api/notes'), get('/api/todos'), get('/api/import-status')
   ]);
 
-  // Group the series and work out a ceiling for each bar from the metric's own history,
-  // so a bar means something without anybody hand-setting a scale per business.
   const by = {};
   for(const r of ((md&&md.series)||[])) if(r.value!=null) (by[r.key]=by[r.key]||[]).push(r);
   const groups = {};
@@ -1012,48 +1224,106 @@ async function board(){
     const ser = by[m.key]; if(!ser || !ser.length) continue;
     const last = ser[ser.length-1];
     const peak = Math.max.apply(null, ser.map(r=>Math.abs(r.value)));
-    const cap = peak > 0 ? peak * 1.1 : 1;
+    const cap = peak > 0 ? peak*1.1 : 1;
     const pd = new Date(new Date(last.date).getTime()-7*86400000).toISOString().slice(0,10);
     const prev = ser.filter(r=>r.date<=pd).pop();
     let delta = '';
     if(prev && prev.value){
       const pc = (last.value-prev.value)/Math.abs(prev.value)*100;
-      if(Math.abs(pc) >= 0.5){
+      if(Math.abs(pc)>=0.5){
         const good = m.better==='down' ? pc<0 : pc>0;
         delta = '<i class="'+(m.better==='flat'?'':(good?'up':'dn'))+'">'+(pc>0?'+':'')+pc.toFixed(0)+'%</i>';
       }
     }
     const ratio = Math.max(0, Math.min(1, Math.abs(last.value)/cap));
-    // A full bar is good when up is good, and a warning when it is not.
-    let cls = 'fl';
+    let cls = 'con-fill';
     if(m.better==='down') cls += ratio>0.8 ? ' bad' : (ratio>0.55 ? ' warn' : '');
-    const g = m.grp || 'Numbers';
-    (groups[g]=groups[g]||[]).push(
-      '<div><div class="mrow"><span class="ml">'+esc(m.label)+'</span>'+
-      '<span class="mv">'+fmt(last.value,m.unit)+delta+'</span></div>'+
-      '<div class="bar"><div class="'+cls+'" style="width:'+(ratio*100).toFixed(1)+'%"></div></div></div>');
+    const gname = m.grp || 'Numbers';
+    (groups[gname] = groups[gname]||[]).push(
+      '<div><div class="con-mrow"><span class="con-ml">'+esc(m.label)+'</span>'+
+      '<span class="con-mv">'+fmt(last.value,m.unit)+delta+'</span></div>'+
+      '<div class="con-bar"><div class="'+cls+'" style="width:'+(ratio*100).toFixed(1)+'%"></div></div></div>');
   }
+  document.getElementById('con-left').innerHTML =
+    Object.keys(groups).map(g=>'<div class="con-pane"><h4>'+esc(g)+'</h4><div>'+groups[g].join('')+'</div></div>').join('')
+    || '<div class="con-pane"><h4>Numbers</h4><div class="con-none">Nothing yet. The first report fills this in.</div></div>';
 
-  const panes = Object.keys(groups).map(g =>
-    '<div class="pane"><div class="grp">'+esc(g)+'</div>'+groups[g].join('')+'</div>');
-
-  const flags = ((nd&&nd.notes)||[]).slice(0,5).map(n=>
-    '<div class="flag '+esc(n.severity)+'"><b>'+esc(n.title)+'</b>'+
+  const flags = ((nd&&nd.notes)||[]).slice(0,4).map(n=>
+    '<div class="con-flag '+esc(n.severity)+'"><b>'+esc(n.title)+'</b>'+
     (n.metric?'<span>'+esc(n.metric)+'</span>':'')+'</div>').join('');
-  panes.unshift('<div class="pane"><div class="grp">Needs attention</div>'+
-    (flags || '<div class="none">Nothing flagged.</div>')+'</div>');
-
-  const open = (todos||[]).filter(t=>!t.done).slice(0,7);
-  panes.push('<div class="pane"><div class="grp">To do'+(open.length?' ('+open.length+')':'')+'</div>'+
-    (open.length ? open.map(t=>'<div class="todo">'+(t.priority===1?'<em>NOW</em>':'')+
-      '<span>'+esc(t.title)+'</span></div>').join('') : '<div class="none">Nothing on the list.</div>')+'</div>');
+  const open = (todos||[]).filter(t=>!t.done);
+  const logWas = document.getElementById('con-log');
+  const keep = logWas ? logWas.innerHTML : '';
+  document.getElementById('con-right').innerHTML =
+    '<div class="con-pane" style="flex:0 0 auto"><h4>Needs attention</h4><div>'+
+      (flags || '<div class="con-none">Nothing flagged.</div>')+'</div></div>'+
+    '<div class="con-pane" style="flex:1 1 0"><h4>To do'+(open.length?' ('+open.length+')':'')+'</h4>'+
+      '<div class="con-grow">'+(open.length
+        ? open.map(t=>'<div class="con-line"><em class="'+(t.priority===1?'now':'')+'">'+
+            (t.priority===1?'NOW':'--')+'</em><span>'+esc(t.title)+'</span></div>').join('')
+        : '<div class="con-none">Nothing on the list.</div>')+'</div></div>'+
+    '<div class="con-pane" style="flex:1 1 0"><h4>Transcript</h4>'+
+      '<div class="con-grow" id="con-log">'+(keep || '<div class="con-none">Nothing asked yet.</div>')+'</div></div>';
 
   const oldest = (imps||[]).map(i=>i.added).sort()[0];
-  const stamp = new Intl.DateTimeFormat('en-AU',{timeZone:TZ,weekday:'short',day:'numeric',
-    month:'short',hour:'numeric',minute:'2-digit'}).format(new Date());
-  el.innerHTML = '<div class="cols">'+panes.join('')+'</div>'+
-    '<div class="foot"><span>'+esc(stamp)+'</span><span>'+
-    (oldest ? 'Tradify uploaded '+ageOf(oldest)[0] : 'No Tradify upload yet')+'</span></div>';
+  document.getElementById('con-fresh').textContent =
+    oldest ? 'Tradify uploaded '+ageOf(oldest)[0] : 'No Tradify upload yet';
+  document.getElementById('con-stamp').textContent = 'Refreshes every two minutes';
+}
+
+function consolePage(){
+  if(!document.getElementById('orb')) return;
+  orb(); conClock(); conLoad();
+  setInterval(conClock, 20000);
+  setInterval(conLoad, 120000);
+
+  const q = document.getElementById('con-q'), go = document.getElementById('con-go'),
+        ans = document.getElementById('con-ans'), st = document.getElementById('con-state'),
+        sub = document.getElementById('con-sub'), mic = document.getElementById('con-mic');
+
+  async function send(){
+    const text = q.value.trim(); if(!text || conBusy) return;
+    conBusy = true; go.disabled = true;
+    q.value = ''; conSay('you', text);
+    st.textContent = 'Thinking'; sub.textContent = 'Working';
+    ans.className = 'con-ans'; ans.textContent = '';
+    try{
+      const r = await fetch('/api/ask',{method:'POST',credentials:'same-origin',
+        headers:{'content-type':'application/json'},body:JSON.stringify({q:text})});
+      const j = await r.json();
+      const out = r.ok ? j.text : (j.error||'That did not work.');
+      ans.className = 'con-ans' + (r.ok?'':' err');
+      ans.textContent = out;
+      conSay('cc', out);
+      st.textContent = r.ok ? 'Answered' : 'Could not answer';
+    }catch(e){
+      ans.className = 'con-ans err';
+      ans.textContent = 'Could not reach the dashboard.';
+      st.textContent = 'Offline';
+    }
+    sub.textContent = 'Standing by';
+    conBusy = false; go.disabled = false; q.focus();
+  }
+
+  go.addEventListener('click', send);
+  q.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); send(); }});
+
+  /* Voice is a convenience, not a dependency: a browser without it just loses the button. */
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SR){ mic.style.display = 'none'; }
+  else {
+    let rec = null, on = false;
+    mic.addEventListener('click', ()=>{
+      if(on && rec){ rec.stop(); return; }
+      rec = new SR(); rec.lang = 'en-AU'; rec.interimResults = false;
+      rec.onstart = ()=>{ on = true; mic.textContent = 'Listening'; st.textContent = 'Listening'; };
+      rec.onerror = ()=>{ st.textContent = 'Could not hear that'; };
+      rec.onend = ()=>{ on = false; mic.textContent = 'Voice'; };
+      rec.onresult = (e)=>{ q.value = e.results[0][0].transcript; send(); };
+      try{ rec.start(); }catch(err){ st.textContent = 'Microphone not available'; }
+    });
+  }
+  q.focus();
 }
 
 async function reports(){
@@ -1086,7 +1356,7 @@ async function publishedPage(){
   f.srcdoc = r.ok ? await r.text() : '<p style="font:14px system-ui;padding:20px">Could not load this page.</p>';
 }
 if(TAB==='home'){ home(); imports(); }
-else if(TAB==='board'){ board(); setInterval(board, 120000); }
+else if(TAB==='board'){ consolePage(); }
 else if(TAB==='ask') ask();
 else if(TAB==='reports') reports();
 else publishedPage();
@@ -1198,6 +1468,8 @@ export default {
       return new Response(row.html, { headers: { "content-type": "text/html;charset=utf-8" } });
     }
 
+    // The wall-screen version: same page, no header and no tab rail.
+    if (p === "/console") return shell(env, url, true);
     if (p === "/") return shell(env, url);
     return new Response("Not found", { status: 404 });
   },
