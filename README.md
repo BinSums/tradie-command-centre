@@ -55,10 +55,10 @@ when they are not. Leave this one on.
 
 ## The one thing that will break it
 
-Tradify has no API, so the jobs and quotes routine reads a CSV you export by hand into
-`~/.command-centre/imports/`. If you stop, the jobs numbers go stale rather than going blank.
-Every card says how old that export is, and the routine stops treating it as current after a
-week. Xero is a live connection and needs nothing.
+Tradify has no API, so once a week somebody exports a CSV and drags it onto the dashboard. It
+works out which export it is on its own. If you stop, the jobs numbers go stale rather than
+going blank. The Home tab shows each export's age in green, amber then red, and the routine
+stops treating it as current after a week. Xero is a live connection and needs nothing.
 
 ## Asking it for things
 

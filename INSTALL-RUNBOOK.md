@@ -177,7 +177,8 @@ With the person who will actually do it. Walk both paths on their screen once:
 - **Quotes**: Quotes page, tick, then the Export icon. No Options menu on this one, which is
   what catches people out.
 
-Save into `~/.command-centre/imports/`. Put a weekly reminder in their calendar before leaving.
+Then drag it onto **Add an export** on the dashboard Home tab. Do one real upload with them
+rather than describing it. Put a weekly reminder in their calendar before leaving.
 
 ---
 

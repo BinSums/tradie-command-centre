@@ -427,12 +427,12 @@ td strong{white-space:nowrap}
       <tr><td><strong>Xero</strong></td><td>Live connection, always current</td>
       <td>Cash at bank, invoices raised and paid, what you are owed and how old it is, what you
       owe, and the profit and loss.</td></tr>
-      <tr><td><strong>Tradify</strong></td><td>CSV you export by hand</td>
+      <tr><td><strong>Tradify</strong></td><td>CSV you export and upload</td>
       <td>Jobs and their status, quotes and their value, timesheets. As current as your last
-      export and no more.</td></tr>
+      upload and no more.</td></tr>
       <tr><td><strong>Your quoting spreadsheet</strong></td><td>Read from a folder</td>
       <td>Quotes that never made it into Tradify, which are the ones most likely to go cold
-      because nothing is tracking them.</td></tr>
+      because nothing is tracking them. Uploaded the same way.</td></tr>
     </table></div>
 
     <div class="warn">
@@ -584,8 +584,9 @@ npx wrangler d1 execute your-business-cc-db --remote --file=schema.sql</code></p
     <p>This is the one part that depends on a person remembering. It takes about a minute, once a
     week, and the whole jobs and quotes half of the dashboard rests on it. Give it to whoever does
     the invoicing, not to whoever is on the tools.</p>
-    <p>Save the files into <code>~/.command-centre/imports/</code> on the computer the routines run
-    on. You do not need to rename them.</p>
+    <p>Then drag the file onto <strong>Add an export</strong> on your dashboard's Home tab. It
+    works out which export it is on its own and tells you how many rows it saved. You do not need
+    to rename anything, and it does not matter which computer you do it from.</p>
 
     <div class="panel">
       <h3>Jobs</h3>
@@ -617,10 +618,11 @@ npx wrangler d1 execute your-business-cc-db --remote --file=schema.sql</code></p
     <div class="warn">
       <div class="eyebrow">What happens if you stop</div>
       <h3>It tells you, rather than pretending</h3>
-      <p>Every card carries a line like <em>"Jobs data from Monday 25 Aug export, 3 days old"</em>.
-      Past seven days the routine turns amber, stops reporting those figures as current, and puts
-      a note on the dashboard asking for a fresh export. It will not quietly present three week old
-      job numbers as this morning's.</p>
+      <p>The Home tab lists every export with its age beside it, in green, then amber, then red as
+      it gets older. Every card also carries a line like <em>"Jobs data from the 25 Aug upload,
+      3 days old"</em>. Past seven days the routine turns amber, stops reporting those figures as
+      current, and asks for a fresh one. It will not quietly present three week old job numbers as
+      this morning's.</p>
       <p>Cash, invoices, debtors and the profit and loss are unaffected, because Xero is live.</p>
     </div>
 
@@ -735,8 +737,9 @@ npx wrangler d1 execute your-business-cc-db --remote --file=schema.sql</code></p
         run to pick them up.</td></tr>
         <tr><td><code>pages</code></td><td>Full HTML reports published by a routine, which appear
         as their own tab.</td></tr>
-        <tr><td><code>imports</code></td><td>Raw CSV drops kept whole and dated, so a routine can
-        diff this week against last and any figure can be traced back.</td></tr>
+        <tr><td><code>imports</code></td><td>Uploaded CSVs kept whole and dated, so a routine can
+        diff this week against last and any figure can be traced back. Storing them here rather
+        than on a laptop is what lets the reports run in the cloud.</td></tr>
         <tr><td><code>kb</code></td><td>Business context, so the assistant knows the things that
         are not in the numbers.</td></tr>
       </table></div>

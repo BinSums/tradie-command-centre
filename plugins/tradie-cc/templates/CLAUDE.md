@@ -6,7 +6,9 @@ Claude works on this business through the Command Centre. Read this before any s
 
 - **Dashboard**: __DASHBOARD_URL__
 - **Config and helper**: `~/.command-centre/` (the `env` file holds the address and token)
-- **Tradify exports land in**: `~/.command-centre/imports/`
+- **Tradify exports**: uploaded on the dashboard Home tab, read back with
+  `cc.sh get /api/import-status` and `cc.sh get "/api/imports?source=...&latest=1"`.
+  Never look on disk: a run may be happening in the cloud.
 - **Post to the dashboard with**: `bash ~/.command-centre/bin/cc.sh`
 
 ## Standing rules for every run
