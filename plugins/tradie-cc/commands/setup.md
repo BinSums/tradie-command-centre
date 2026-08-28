@@ -24,6 +24,17 @@ how far in they are.
 
 ---
 
+## These steps have been run for real
+
+Rehearsed end to end on 28 August 2026 against a real Cloudflare account: database created,
+schema and metric labels applied with `--remote`, three secrets set, deployed, signed in, a
+routine posted a card and metrics, the Ask box answered from live Workers AI and correctly
+refused a question it had no data for, a CSV uploaded over the bearer, and both auth guards
+returned 401. The instance was then deleted.
+
+So the sequence below is known to work, not just written down. If you deviate from it and
+something breaks, the deviation is the first thing to look at.
+
 ## Step 1 of 10: is anything missing?
 
 Check all of these before asking them for anything. Do not report problems one at a time as you
