@@ -17,3 +17,16 @@ CURRENCY = "__CURRENCY__"
 binding = "DB"
 database_name = "__DB_NAME__"
 database_id = "__DB_ID__"
+
+# The question box on the Ask tab. Workers AI runs on this same Cloudflare account and is
+# free on the plan everything else here already uses, so there is nothing extra to sign up
+# for and nothing extra to pay.
+#
+# To upgrade the answers later, and only then does it cost anything:
+#   npx wrangler secret put ANTHROPIC_API_KEY
+#   npx wrangler secret put ASK_MODEL        -> claude-sonnet-5
+# remote = true because an AI binding is unsupported in local dev without it: the demo
+# would show a broken question box, which is the one part people most want to try.
+[ai]
+binding = "AI"
+remote = true

@@ -146,6 +146,8 @@ async function ingestPage(req, env) {
   const b = await readJson(req);
   if (!b || !b.slug || !b.html) return J({ error: "slug and html are required" }, 400);
   if (!/^[a-z0-9-]{1,40}$/.test(b.slug)) return J({ error: "slug must be lowercase letters, digits and hyphens" }, 400);
+  // Reserved: a published page using one of these would shadow a built-in tab.
+  if (["home", "ask", "reports"].includes(b.slug)) return J({ error: "that slug is reserved" }, 400);
   await env.DB.prepare(
     "INSERT INTO pages (slug,title,html,nav,sort,updated_at) VALUES (?,?,?,?,?,?) " +
     "ON CONFLICT(slug) DO UPDATE SET title=excluded.title, html=excluded.html, nav=excluded.nav, sort=excluded.sort, updated_at=excluded.updated_at"
@@ -329,6 +331,137 @@ async function apiKb(env) {
   return J(results || []);
 }
 
+/* ---------- ask ----------
+   A question box on the dashboard, so the owner can ask things the routines were never
+   written to answer, from a phone, without opening Claude.
+
+   It runs on Workers AI by default, which is on THEIR Cloudflare account and free on the
+   plan this whole thing already uses. No second subscription and nothing to sign up for.
+   Setting ANTHROPIC_API_KEY plus ASK_MODEL to a claude-* id upgrades the answers, and is
+   a deliberate opt-in because it is the only part of the system that would cost money.
+
+   The model is never asked to work anything out from raw data. It gets a compact brief
+   built here from D1 and is told to answer from that alone, because the failure that
+   actually matters is a confident invented number. */
+
+function stripHtml(h) {
+  return String(h || "").replace(/<[^>]*>/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/\s+/g, " ").trim();
+}
+
+async function buildBrief(env) {
+  const c = cfg(env);
+  const today = localDate(env);
+  const since = new Date(Date.now() - 70 * 86400000).toISOString().slice(0, 10);
+  const [mSeries, mMeta, notes, todos, runs, imports, kb] = await Promise.all([
+    env.DB.prepare("SELECT date,key,value FROM metrics WHERE date>=? AND value IS NOT NULL ORDER BY date").bind(since).all(),
+    env.DB.prepare("SELECT key,label,unit,better FROM metric_meta").all(),
+    env.DB.prepare("SELECT area,severity,title,body,metric,date FROM notes WHERE date=(SELECT MAX(date) FROM notes)").all(),
+    env.DB.prepare("SELECT title,detail,priority,due FROM todos WHERE done IS NULL ORDER BY priority LIMIT 40").all(),
+    env.DB.prepare("SELECT title,status,run_at,summary_html FROM runs ORDER BY run_at DESC LIMIT 8").all(),
+    env.DB.prepare("SELECT source, MAX(added) AS added FROM imports GROUP BY source").all(),
+    env.DB.prepare("SELECT title,body FROM kb ORDER BY slug LIMIT 8").all(),
+  ]);
+
+  const L = [];
+  L.push(`Business: ${c.name}. Today is ${today}. Currency ${c.cur}. Timezone ${c.tz}.`);
+
+  const meta = Object.fromEntries((mMeta.results || []).map((m) => [m.key, m]));
+  const by = {};
+  for (const r of mSeries.results || []) (by[r.key] = by[r.key] || []).push(r);
+  const lines = [];
+  for (const [k, series] of Object.entries(by)) {
+    const m = meta[k] || { label: k, unit: "" };
+    const last = series[series.length - 1];
+    const prevDate = new Date(new Date(last.date).getTime() - 7 * 86400000).toISOString().slice(0, 10);
+    const prev = series.filter((r) => r.date <= prevDate).pop();
+    lines.push(`- ${m.label}: ${last.value} (as at ${last.date})` +
+      (prev ? `, was ${prev.value} on ${prev.date}` : "") +
+      (m.unit ? ` [${m.unit}]` : ""));
+  }
+  if (lines.length) L.push("\nCURRENT NUMBERS:\n" + lines.join("\n"));
+
+  if ((notes.results || []).length)
+    L.push("\nWHAT THE ROUTINES FLAGGED (" + notes.results[0].date + "):\n" +
+      notes.results.map((n) => `- [${n.severity}] ${n.title}. ${n.body || ""} ${n.metric || ""}`.trim()).join("\n"));
+
+  if ((todos.results || []).length)
+    L.push("\nOPEN TO-DO LIST:\n" + todos.results.map((t) =>
+      `- ${t.title}${t.detail ? " (" + t.detail + ")" : ""}${t.due ? " due " + t.due : ""}`).join("\n"));
+
+  if ((runs.results || []).length)
+    L.push("\nRECENT REPORTS:\n" + runs.results.map((r) =>
+      `- ${r.run_at.slice(0, 10)} ${r.title} [${r.status}]: ${stripHtml(r.summary_html).slice(0, 240)}`).join("\n"));
+
+  if ((imports.results || []).length)
+    L.push("\nTRADIFY UPLOADS (how current the jobs and quotes data is):\n" +
+      imports.results.map((i) => `- ${i.source}: last uploaded ${i.added}`).join("\n"));
+
+  if ((kb.results || []).length)
+    L.push("\nABOUT THIS BUSINESS:\n" + kb.results.map((k) => `${k.title}: ${k.body}`.slice(0, 700)).join("\n"));
+
+  return L.join("\n");
+}
+
+const ASK_RULES =
+  "You answer questions about this business for its owner, who is reading on a phone " +
+  "between jobs. Rules, in order of importance:\n" +
+  "1. Answer ONLY from the brief below. If the brief does not contain the answer, say so " +
+  "plainly and say what would need to be uploaded or connected for you to know. NEVER " +
+  "estimate, guess or infer a number that is not there.\n" +
+  "2. Be short. Two or three sentences unless asked for detail. No preamble, no bullet " +
+  "lists unless comparing several things.\n" +
+  "3. Quote the actual figures and their dates. If data is old, say how old.\n" +
+  "4. Plain English. No jargon, no marketing tone. Write like a straight-talking bookkeeper.\n" +
+  "5. If asked to do something rather than answer something, say it can be added to the " +
+  "to-do list or asked of Claude directly, and do not pretend to have done it.";
+
+async function apiAsk(req, env) {
+  const b = await readJson(req);
+  const q = b && typeof b.q === "string" ? b.q.trim() : "";
+  if (!q) return J({ error: "Ask a question." }, 400);
+  if (q.length > 600) return J({ error: "That question is too long. Try a shorter one." }, 400);
+
+  const brief = await buildBrief(env);
+  const model = String(env.ASK_MODEL || "").trim();
+  const useAnthropic = /^claude-/.test(model) && !!env.ANTHROPIC_API_KEY;
+  const prompt = ASK_RULES + "\n\n===== BRIEF =====\n" + brief;
+
+  try {
+    if (useAnthropic) {
+      const r = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-api-key": env.ANTHROPIC_API_KEY,
+          "anthropic-version": "2023-06-01",
+        },
+        body: JSON.stringify({ model, max_tokens: 700, system: prompt, messages: [{ role: "user", content: q }] }),
+      });
+      const j = await r.json();
+      const text = (j.content || []).map((c) => c.text).filter(Boolean).join("\n").trim();
+      if (!text) return J({ error: "No answer came back. Try asking again." }, 502);
+      return J({ text });
+    }
+    if (!env.AI) {
+      return J({ error: "The question box is not switched on yet. It needs the AI binding added to wrangler.toml and a redeploy." }, 503);
+    }
+    const out = await env.AI.run("@cf/meta/llama-3.3-70b-instruct-fp8-fast", {
+      max_tokens: 700,
+      messages: [{ role: "system", content: prompt }, { role: "user", content: q }],
+    });
+    const text = String((out && (out.response || out.result)) || "").trim();
+    if (!text) return J({ error: "No answer came back. Try asking again." }, 502);
+    return J({ text });
+  } catch (e) {
+    const m = String((e && e.message) || e);
+    if (/not support|no such binding|Unimplemented|binding/i.test(m)) {
+      return J({ error: "The question box needs the deployed dashboard. It does not run in local preview." }, 503);
+    }
+    return J({ error: "Could not reach the model just now. Try again in a moment." }, 502);
+  }
+}
+
 /* ---------- pages ---------- */
 
 const CSS = `
@@ -381,6 +514,21 @@ ul.todo .x{opacity:.4;text-decoration:line-through}
 .run .sum{color:var(--dim);font-size:13px;margin-top:7px}
 .run .sum ul{margin:5px 0 0 16px}
 .empty{color:var(--dim);text-align:center;padding:34px 18px;font-size:14px}
+.ask{display:flex;flex-direction:column;gap:12px}
+.ask .box{display:flex;gap:8px}
+.ask textarea{flex:1;min-height:52px;max-height:170px;padding:12px 14px;border:1px solid var(--line);
+border-radius:11px;background:var(--card);color:var(--ink);font:15px/1.5 inherit;resize:vertical}
+.ask textarea:focus{outline:2px solid var(--accent);outline-offset:1px}
+.ask button.go{flex:0 0 auto;align-self:flex-end;padding:12px 18px;border:0;border-radius:11px;
+background:var(--ink);color:var(--bg);font-size:14.5px;font-weight:600;cursor:pointer}
+.ask button.go:disabled{opacity:.45;cursor:default}
+.ask .sugg{display:flex;flex-wrap:wrap;gap:7px}
+.ask .sugg button{background:var(--card);border:1px solid var(--line);color:var(--dim);
+border-radius:99px;padding:7px 13px;font-size:12.5px;cursor:pointer;text-align:left}
+.ask .sugg button:hover{color:var(--ink);border-color:var(--dim)}
+.ask .ans{white-space:pre-wrap;line-height:1.62;font-size:15px}
+.ask .ans.err{color:var(--alert)}
+.ask .qline{font-size:13px;color:var(--dim);margin-bottom:7px}
 .imp{display:flex;flex-direction:column;gap:11px}
 .imp .row{display:flex;justify-content:space-between;gap:12px;align-items:baseline;
 padding:9px 0;border-bottom:1px solid var(--line)}
@@ -434,7 +582,7 @@ async function shell(env, url) {
   const c = cfg(env);
   const { results: pages } = await env.DB.prepare("SELECT slug,title FROM pages WHERE nav=1 ORDER BY sort, title").all();
   const tab = url.searchParams.get("t") || "home";
-  const tabs = [{ slug: "home", title: "Home" }, ...(pages || []), { slug: "reports", title: "Reports" }];
+  const tabs = [{ slug: "home", title: "Home" }, { slug: "ask", title: "Ask" }, ...(pages || []), { slug: "reports", title: "Reports" }];
   const nav = tabs.map((t) =>
     `<a href="/?t=${esc(t.slug)}" class="${t.slug === tab ? "on" : ""}">${esc(t.title)}</a>`).join("");
   const known = tabs.some((t) => t.slug === tab);
@@ -442,6 +590,12 @@ async function shell(env, url) {
   let body;
   if (tab === "home") {
     body = `<div id="notes"></div><div id="tiles"></div><div id="todos"></div><div id="imports"></div>`;
+  } else if (tab === "ask") {
+    body = `<h2>Ask about the business</h2><div class="card ask">
+<div class="box"><textarea id="q" placeholder="Who owes us the most right now?" rows="2"></textarea>
+<button class="go" id="go">Ask</button></div>
+<div class="sugg" id="sugg"></div>
+<div id="ans"></div></div>`;
   } else if (tab === "reports") {
     body = `<h2>Every run</h2><div class="runs" id="runs"></div>`;
   } else if (known) {
@@ -598,6 +752,50 @@ async function imports(){
   drop.addEventListener('drop', ev=> send(ev.dataTransfer.files[0]));
 }
 
+// Deliberately answers from the same figures the cards are built from, so the box and
+// the dashboard can never disagree. The suggestions exist because a blank text field is
+// the fastest way to make somebody close a page.
+const SUGGESTIONS = [
+  'Who owes us the most right now?',
+  'How is cash tracking compared to last week?',
+  'What should I chase today?',
+  'Are we quoting more or less than a month ago?',
+  'How old is my jobs data?'
+];
+
+function ask(){
+  const q = document.getElementById('q'), go = document.getElementById('go'),
+        ans = document.getElementById('ans'), sugg = document.getElementById('sugg');
+  if(!q) return;
+  sugg.innerHTML = SUGGESTIONS.map(t=>'<button type="button">'+esc(t)+'</button>').join('');
+  sugg.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{
+    q.value = b.textContent; send();
+  }));
+
+  async function send(){
+    const text = q.value.trim();
+    if(!text) return;
+    go.disabled = true;
+    ans.innerHTML = '<div class="qline">'+esc(text)+'</div><div class="ans" style="color:var(--dim)">Thinking...</div>';
+    try{
+      const r = await fetch('/api/ask',{method:'POST',credentials:'same-origin',
+        headers:{'content-type':'application/json'},body:JSON.stringify({q:text})});
+      const j = await r.json();
+      ans.innerHTML = '<div class="qline">'+esc(text)+'</div>'+
+        '<div class="ans'+(r.ok?'':' err')+'">'+esc(r.ok ? j.text : (j.error||'That did not work.'))+'</div>';
+    }catch(e){
+      ans.innerHTML = '<div class="ans err">Could not reach the dashboard. Check your connection.</div>';
+    }
+    go.disabled = false;
+  }
+
+  go.addEventListener('click', send);
+  // Enter sends, shift+enter makes a new line. On a phone the button is the obvious path,
+  // but on a laptop nobody wants to reach for the mouse to ask a question.
+  q.addEventListener('keydown', e=>{ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); send(); }});
+  q.focus();
+}
+
 async function reports(){
   const rows = await get('/api/runs?days=30');
   const el = document.getElementById('runs');
@@ -627,7 +825,7 @@ async function publishedPage(){
   const r = await fetch('/p/'+f.dataset.slug,{credentials:'same-origin'});
   f.srcdoc = r.ok ? await r.text() : '<p style="font:14px system-ui;padding:20px">Could not load this page.</p>';
 }
-if(TAB==='home'){ home(); imports(); } else if(TAB==='reports') reports(); else publishedPage();
+if(TAB==='home'){ home(); imports(); } else if(TAB==='ask') ask(); else if(TAB==='reports') reports(); else publishedPage();
 </script></body></html>`;
   return new Response(html, { headers: { "content-type": "text/html;charset=utf-8" } });
 }
@@ -716,6 +914,7 @@ export default {
     if (p === "/api/assistant-queue" || p === "/api/assistant-queue/done") return apiQueue(request, env, url);
     if (p === "/api/imports") return apiImports(url, env);
     if (p === "/api/import-status") return apiImportStatus(env);
+    if (p === "/api/ask" && request.method === "POST") return apiAsk(request, env);
     if (p === "/api/import-upload" && request.method === "POST") return uploadImport(request, env);
     if (p === "/api/kb") return apiKb(env);
 

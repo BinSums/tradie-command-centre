@@ -250,8 +250,10 @@ td strong{white-space:nowrap}
     <a href="#s8"><span class="n">08</span><span class="t">Using it day to day</span><span class="d">Cards, the list, asking for things</span></a>
     <a href="#s9"><span class="n">09</span><span class="t">When something looks wrong</span><span class="d">Troubleshooting</span></a>
     <a href="#s10"><span class="n">10</span><span class="t">How it is built</span><span class="d">For whoever is technical</span></a>
-    <a href="#s11"><span class="n">11</span><span class="t">What it costs to run</span><span class="d">And what it does not do</span></a>
-    <a href="#s12"><span class="n">12</span><span class="t">Every link in one place</span><span class="d">Index</span></a>
+    <a href="#s11"><span class="n">11</span><span class="t">Asking it questions</span><span class="d">The Ask tab</span></a>
+    <a href="#s12"><span class="n">12</span><span class="t">Making it do more</span><span class="d">Adding your own reports and tabs</span></a>
+    <a href="#s13"><span class="n">13</span><span class="t">What it costs to run</span><span class="d">And what it does not do</span></a>
+    <a href="#s14"><span class="n">14</span><span class="t">Every link in one place</span><span class="d">Index</span></a>
   </div>
 </section>
 
@@ -797,8 +799,139 @@ cc.sh get   /api/assistant-queue           what has been asked for</code></pre>
   </div>
 </section>
 
+
 <section id="s11">
-  <div class="sec-head"><div class="num">11</div><h2>What it costs, and what it will not do</h2></div>
+  <div class="sec-head"><div class="num">11</div><h2>Asking it questions</h2></div>
+  <div class="stack-lg">
+    <p>There is an <strong>Ask</strong> tab on the dashboard. Type a question in normal words and
+    it answers from your own figures. It is there for the things the reports were never written
+    to cover, and for when you are standing on a job and do not want to open anything else.</p>
+    <div class="two">
+      <div class="stack">
+        <h3>Things worth asking</h3>
+        <ul>
+          <li>Who owes us the most right now?</li>
+          <li>How is cash tracking against last week?</li>
+          <li>What should I chase today?</li>
+          <li>Are we quoting more or less than a month ago?</li>
+          <li>How old is my jobs data?</li>
+        </ul>
+      </div>
+      <div class="stack">
+        <h3>What it will not do</h3>
+        <ul>
+          <li>Make a number up. If it does not have something it says so.</li>
+          <li>Answer about anything outside your Xero and your uploads.</li>
+          <li>Actually do a job. Ask it to chase an invoice and it will tell you to put it on
+          the list, not pretend it rang anyone.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="eyebrow">Worth knowing</div>
+      <h3>It answers from the same figures the cards are built from</h3>
+      <p>It is not searching your accounts live. It reads the same summary the morning report
+      reads, so the Ask tab and the cards can never disagree with each other. If a number is not
+      on the dashboard, it will not be in the answer either, and it will tell you that rather
+      than guessing.</p>
+      <p>It runs on the free AI included with your Cloudflare account, so asking costs nothing.
+      If you ever want sharper answers, there is a paid upgrade in section 13.</p>
+    </div>
+  </div>
+</section>
+
+<section id="s12">
+  <div class="sec-head"><div class="num">12</div><h2>Making it do more</h2></div>
+  <div class="stack-lg">
+    <p>The dashboard you were given is a starting point, not the finished thing. You add to it by
+    asking, in the Code tab, in plain English. You are not writing anything and you cannot break
+    it by asking badly.</p>
+
+    <div class="panel">
+      <div class="eyebrow">The idea in one paragraph</div>
+      <h3>Everything on the dashboard was put there by a routine</h3>
+      <p>A routine is a job that runs on a schedule. It looks at your data, works something out,
+      and sends it to the dashboard in one of five shapes: a <strong>card</strong> (a report),
+      a <strong>number</strong> (a tile), a <strong>flag</strong> (something needing attention),
+      a <strong>to-do</strong>, or a whole <strong>tab</strong>. Anything you want added is one of
+      those five, and you get it by describing what you want.</p>
+    </div>
+
+    <div class="stack">
+      <h3>Ask for a new report</h3>
+      <p>Say when it should run and what it should tell you. Be specific about what you would
+      actually do with the answer, because that is what makes it useful rather than just true.</p>
+      <pre><code>Every Friday afternoon, check which jobs were finished this week
+and whether each one has been invoiced yet. Put anything not
+invoiced on my to-do list with the customer and the amount.</code></pre>
+      <pre><code>Each Monday, work out how long it takes us on average to invoice
+a job after we finish it. Show it as a number on the dashboard and
+tell me if it is getting worse.</code></pre>
+      <pre><code>Once a month, tell me if any single customer was more than 20%
+of that month's revenue. That is the number that scares me.</code></pre>
+    </div>
+
+    <div class="stack">
+      <h3>Ask for a new number on the front page</h3>
+      <p>Say what to count and which direction is good, so it colours correctly.</p>
+      <pre><code>Add a tile for the total value of work booked but not yet started.
+Higher is better.</code></pre>
+    </div>
+
+    <div class="stack">
+      <h3>Ask for a whole new tab</h3>
+      <p>A tab is for detail you want to look through rather than be told.</p>
+      <pre><code>Make a tab called Customers showing everyone we have worked for
+this year, what they have spent, and when we last did a job for
+them. Sort by spend.</code></pre>
+    </div>
+
+    <div class="stack">
+      <h3>Correct it, or tell it something it cannot know</h3>
+      <p>This is the one most people never think to use, and it is the most valuable. The
+      routines only know what is in Xero and your uploads. Everything else about your business
+      has to be told to them once.</p>
+      <pre><code>Stop chasing Blackwood. They are on a payment plan and paying
+$2,000 a month.</code></pre>
+      <pre><code>December and January are dead for us. Do not flag a quiet month
+then as a problem.</code></pre>
+      <pre><code>Retaining walls normally take us three weeks. Do not call one
+stalled before that.</code></pre>
+      <p>Say these in the Code tab any time. They go into a queue and the next run picks them up,
+      acts on them, and tells you on the card what it changed.</p>
+    </div>
+
+    <div class="stack">
+      <h3>Change or switch off something you already have</h3>
+      <pre><code>The morning brief is too early. Move it to 7:30.</code></pre>
+      <pre><code>Turn off the jobs and quotes report for now, we are not
+uploading exports at the moment.</code></pre>
+    </div>
+
+    <div class="warn">
+      <div class="eyebrow">Two rules that keep it honest</div>
+      <h3>Ask for decisions, not lists</h3>
+      <p>"Show me all overdue invoices" gives you a list you will not read. "Tell me the two
+      invoices most worth ringing about this week, and why those ones" gives you something you
+      will act on. The whole system is built to be short, and a request for a big list works
+      against it.</p>
+      <p>And whenever you add something that uses a number, say <strong>what it should do when it
+      cannot find that number</strong>. The right answer is always to say so, never to guess. If
+      you do not say it, say it anyway: it is worth the extra sentence.</p>
+    </div>
+
+    <div class="panel">
+      <div class="eyebrow">If you break something</div>
+      <h3>Nothing here is permanent</h3>
+      <p>Reports can be switched off, tabs deleted, tiles removed. Your history is never
+      overwritten, so an experiment cannot destroy last month's figures. If something looks wrong
+      after a change, type <code>/tradie-cc:check</code> and it will find and fix what it can.</p>
+    </div>
+  </div>
+</section>
+
+<section id="s13">
+  <div class="sec-head"><div class="num">13</div><h2>What it costs, and what it will not do</h2></div>
   <div class="stack-lg">
     <div class="tbl-wrap"><table>
       <tr><th style="width:36%">Running cost</th><th>Amount</th></tr>
@@ -806,6 +939,8 @@ cc.sh get   /api/assistant-queue           what has been asked for</code></pre>
       this size. A few dollars a month at the outside.</td></tr>
       <tr><td><strong>Claude subscription</strong></td><td>One, yours. The routines run on it.</td></tr>
       <tr><td><strong>Xero and Tradify</strong></td><td>No change to your existing plans.</td></tr>
+      <tr><td><strong>The Ask tab</strong></td><td>Free. It uses the AI included with your
+      Cloudflare account. Optional paid upgrade for sharper answers, set up on request.</td></tr>
       <tr><td><strong>Anything to me</strong></td><td>Nothing ongoing. Build and setup are quoted
       separately and that is the end of it.</td></tr>
     </table></div>
@@ -838,8 +973,8 @@ cc.sh get   /api/assistant-queue           what has been asked for</code></pre>
   </div>
 </section>
 
-<section id="s12">
-  <div class="sec-head"><div class="num">12</div><h2>Every link in one place</h2></div>
+<section id="s14">
+  <div class="sec-head"><div class="num">14</div><h2>Every link in one place</h2></div>
   <div class="stack">
     <div class="links">
       <div class="lrow"><b>Sign up to Cloudflare</b><span>https://dash.cloudflare.com/sign-up</span></div>

@@ -35,4 +35,7 @@ echo "  Dashboard:  http://127.0.0.1:8799"
 echo "  Password:   demo"
 echo "  Scratch:    $RUN"
 echo
-npx --yes wrangler@latest dev --local --port 8799
+# No --local flag: that forces every binding local, and an AI binding cannot run
+# locally, so the question box would be dead in the demo. D1 still stays on this
+# machine because only the AI binding is marked remote.
+npx --yes wrangler@latest dev --port 8799
