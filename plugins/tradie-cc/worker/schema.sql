@@ -39,7 +39,8 @@ CREATE TABLE IF NOT EXISTS metric_meta (
   unit   TEXT,                             -- money | count | percent | hours | days
   better TEXT DEFAULT 'up',                -- up | down | flat
   sort   INTEGER DEFAULT 100,
-  tile   INTEGER DEFAULT 1                 -- 1 = show on Home
+  tile   INTEGER DEFAULT 1,                -- 1 = show on Home
+  grp    TEXT DEFAULT 'Numbers'            -- column heading on the Board, e.g. Money | Work
 );
 
 -- Dated recommendations at the top of Home. Replaced wholesale per (date, area) so a

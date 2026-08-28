@@ -147,7 +147,7 @@ async function ingestPage(req, env) {
   if (!b || !b.slug || !b.html) return J({ error: "slug and html are required" }, 400);
   if (!/^[a-z0-9-]{1,40}$/.test(b.slug)) return J({ error: "slug must be lowercase letters, digits and hyphens" }, 400);
   // Reserved: a published page using one of these would shadow a built-in tab.
-  if (["home", "ask", "reports"].includes(b.slug)) return J({ error: "that slug is reserved" }, 400);
+  if (["home", "board", "ask", "reports"].includes(b.slug)) return J({ error: "that slug is reserved" }, 400);
   await env.DB.prepare(
     "INSERT INTO pages (slug,title,html,nav,sort,updated_at) VALUES (?,?,?,?,?,?) " +
     "ON CONFLICT(slug) DO UPDATE SET title=excluded.title, html=excluded.html, nav=excluded.nav, sort=excluded.sort, updated_at=excluded.updated_at"
@@ -247,7 +247,7 @@ async function apiMetrics(url, env) {
   const since = new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
   const [series, meta] = await Promise.all([
     env.DB.prepare("SELECT date,key,value FROM metrics WHERE date>=? ORDER BY date").bind(since).all(),
-    env.DB.prepare("SELECT key,label,unit,better,sort,tile FROM metric_meta ORDER BY sort, key").all(),
+    env.DB.prepare("SELECT key,label,unit,better,sort,tile,grp FROM metric_meta ORDER BY sort, key").all(),
   ]);
   return J({ series: series.results || [], meta: meta.results || [] });
 }
@@ -514,6 +514,46 @@ ul.todo .x{opacity:.4;text-decoration:line-through}
 .run .sum{color:var(--dim);font-size:13px;margin-top:7px}
 .run .sum ul{margin:5px 0 0 16px}
 .empty{color:var(--dim);text-align:center;padding:34px 18px;font-size:14px}
+/* The Board. A console, not a page: dense rows, everything visible at once, no clicking.
+   Always dark, on purpose, because it is meant to be left open on a screen in the office
+   and a light panel glowing across a workshop is useless. */
+.board{--bk:#0d1512;--bp:#121c18;--bl:#1e2f28;--bv:#e8f4ec;--bd:#5d7a6c;--bt:#7fb894;
+background:var(--bk);color:var(--bv);border-radius:14px;padding:18px 16px 20px;
+display:flex;flex-direction:column;gap:16px}
+.board .grp{letter-spacing:.18em;font-size:8.5px;text-transform:uppercase;color:var(--bt);
+opacity:.85;margin-bottom:9px;font-weight:600}
+/* align-items:start stops a pane with two metrics stretching to match one with six,
+   which left half the Board as empty boxes. */
+.board .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(228px,1fr));gap:14px;align-items:start}
+.board .pane{border:1px solid var(--bl);border-radius:7px;padding:13px 15px 15px;
+background:linear-gradient(180deg,rgba(24,38,32,.6),rgba(10,18,15,.6))}
+.board .mrow{display:flex;justify-content:space-between;align-items:baseline;
+font-size:13.5px;margin:9px 0 4px;gap:10px}
+.board .ml{color:var(--bd);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;
+white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.board .mv{color:var(--bv);font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.board .mv i{font-style:normal;font-size:10.5px;font-weight:500;margin-left:6px}
+.board .mv i.up{color:#5fbf85}.board .mv i.dn{color:#e0776a}
+.board .bar{height:4px;background:#0a1a14;border-radius:2px;overflow:hidden}
+.board .fl{height:100%;background:linear-gradient(90deg,#2f7a52,#5fbf85);border-radius:2px;
+transition:width .5s ease}
+.board .fl.warn{background:linear-gradient(90deg,#8a6a1c,#cfa051)}
+.board .fl.bad{background:linear-gradient(90deg,#8a3226,#e0776a)}
+.board .flag{border-left:2px solid var(--bl);padding:7px 0 7px 11px;margin-bottom:9px}
+.board .flag:last-child{margin-bottom:0}
+.board .flag.now{border-left-color:#e0776a}
+.board .flag.watch{border-left-color:#cfa051}
+.board .flag.good{border-left-color:#5fbf85}
+.board .flag b{display:block;font-size:13px;font-weight:600;line-height:1.35}
+.board .flag span{display:block;font-size:11px;color:var(--bd);
+font-variant-numeric:tabular-nums;margin-top:2px}
+.board .todo{font-size:12.5px;padding:6px 0;border-bottom:1px solid var(--bl);
+display:flex;gap:9px;align-items:baseline}
+.board .todo:last-child{border-bottom:0}
+.board .todo em{font-style:normal;color:#e0776a;font-size:9px;letter-spacing:.1em}
+.board .foot{display:flex;justify-content:space-between;font-size:10px;letter-spacing:.1em;
+text-transform:uppercase;color:var(--bd);border-top:1px solid var(--bl);padding-top:11px}
+.board .none{color:var(--bd);font-size:12.5px}
 .ask{display:flex;flex-direction:column;gap:12px}
 .ask .box{display:flex;gap:8px}
 .ask textarea{flex:1;min-height:52px;max-height:170px;padding:12px 14px;border:1px solid var(--line);
@@ -582,7 +622,7 @@ async function shell(env, url) {
   const c = cfg(env);
   const { results: pages } = await env.DB.prepare("SELECT slug,title FROM pages WHERE nav=1 ORDER BY sort, title").all();
   const tab = url.searchParams.get("t") || "home";
-  const tabs = [{ slug: "home", title: "Home" }, { slug: "ask", title: "Ask" }, ...(pages || []), { slug: "reports", title: "Reports" }];
+  const tabs = [{ slug: "home", title: "Home" }, { slug: "board", title: "Board" }, { slug: "ask", title: "Ask" }, ...(pages || []), { slug: "reports", title: "Reports" }];
   const nav = tabs.map((t) =>
     `<a href="/?t=${esc(t.slug)}" class="${t.slug === tab ? "on" : ""}">${esc(t.title)}</a>`).join("");
   const known = tabs.some((t) => t.slug === tab);
@@ -590,6 +630,8 @@ async function shell(env, url) {
   let body;
   if (tab === "home") {
     body = `<div id="notes"></div><div id="tiles"></div><div id="todos"></div><div id="imports"></div>`;
+  } else if (tab === "board") {
+    body = `<div id="board" class="board"><div class="none">Loading...</div></div>`;
   } else if (tab === "ask") {
     body = `<h2>Ask about the business</h2><div class="card ask">
 <div class="box"><textarea id="q" placeholder="Who owes us the most right now?" rows="2"></textarea>
@@ -694,7 +736,7 @@ async function home(){
   }));
 }
 
-// Tradify cannot hand its data over on its own, so somebody drops the export here.
+// Shared by the imports panel and the Board.
 // The age is the important part: stale numbers presented as current are the one way
 // this dashboard can quietly lie, so freshness is shown before anything else.
 const SRC_LABEL = {
@@ -796,6 +838,69 @@ function ask(){
   q.focus();
 }
 
+/* The Board: everything on one screen, no clicking, meant to be left open in the office.
+   Modelled on a console rather than a document, because the job is to be glanceable from
+   across a room, not to be read. Refreshes itself so a screen left on stays honest. */
+async function board(){
+  const el = document.getElementById('board');
+  if(!el) return;
+  const [md, nd, todos, imps] = await Promise.all([
+    get('/api/metrics?days=90'), get('/api/notes'), get('/api/todos'), get('/api/import-status')
+  ]);
+
+  // Group the series and work out a ceiling for each bar from the metric's own history,
+  // so a bar means something without anybody hand-setting a scale per business.
+  const by = {};
+  for(const r of ((md&&md.series)||[])) if(r.value!=null) (by[r.key]=by[r.key]||[]).push(r);
+  const groups = {};
+  for(const m of ((md&&md.meta)||[])){
+    const ser = by[m.key]; if(!ser || !ser.length) continue;
+    const last = ser[ser.length-1];
+    const peak = Math.max.apply(null, ser.map(r=>Math.abs(r.value)));
+    const cap = peak > 0 ? peak * 1.1 : 1;
+    const pd = new Date(new Date(last.date).getTime()-7*86400000).toISOString().slice(0,10);
+    const prev = ser.filter(r=>r.date<=pd).pop();
+    let delta = '';
+    if(prev && prev.value){
+      const pc = (last.value-prev.value)/Math.abs(prev.value)*100;
+      if(Math.abs(pc) >= 0.5){
+        const good = m.better==='down' ? pc<0 : pc>0;
+        delta = '<i class="'+(m.better==='flat'?'':(good?'up':'dn'))+'">'+(pc>0?'+':'')+pc.toFixed(0)+'%</i>';
+      }
+    }
+    const ratio = Math.max(0, Math.min(1, Math.abs(last.value)/cap));
+    // A full bar is good when up is good, and a warning when it is not.
+    let cls = 'fl';
+    if(m.better==='down') cls += ratio>0.8 ? ' bad' : (ratio>0.55 ? ' warn' : '');
+    const g = m.grp || 'Numbers';
+    (groups[g]=groups[g]||[]).push(
+      '<div><div class="mrow"><span class="ml">'+esc(m.label)+'</span>'+
+      '<span class="mv">'+fmt(last.value,m.unit)+delta+'</span></div>'+
+      '<div class="bar"><div class="'+cls+'" style="width:'+(ratio*100).toFixed(1)+'%"></div></div></div>');
+  }
+
+  const panes = Object.keys(groups).map(g =>
+    '<div class="pane"><div class="grp">'+esc(g)+'</div>'+groups[g].join('')+'</div>');
+
+  const flags = ((nd&&nd.notes)||[]).slice(0,5).map(n=>
+    '<div class="flag '+esc(n.severity)+'"><b>'+esc(n.title)+'</b>'+
+    (n.metric?'<span>'+esc(n.metric)+'</span>':'')+'</div>').join('');
+  panes.unshift('<div class="pane"><div class="grp">Needs attention</div>'+
+    (flags || '<div class="none">Nothing flagged.</div>')+'</div>');
+
+  const open = (todos||[]).filter(t=>!t.done).slice(0,7);
+  panes.push('<div class="pane"><div class="grp">To do'+(open.length?' ('+open.length+')':'')+'</div>'+
+    (open.length ? open.map(t=>'<div class="todo">'+(t.priority===1?'<em>NOW</em>':'')+
+      '<span>'+esc(t.title)+'</span></div>').join('') : '<div class="none">Nothing on the list.</div>')+'</div>');
+
+  const oldest = (imps||[]).map(i=>i.added).sort()[0];
+  const stamp = new Intl.DateTimeFormat('en-AU',{timeZone:TZ,weekday:'short',day:'numeric',
+    month:'short',hour:'numeric',minute:'2-digit'}).format(new Date());
+  el.innerHTML = '<div class="cols">'+panes.join('')+'</div>'+
+    '<div class="foot"><span>'+esc(stamp)+'</span><span>'+
+    (oldest ? 'Tradify uploaded '+ageOf(oldest)[0] : 'No Tradify upload yet')+'</span></div>';
+}
+
 async function reports(){
   const rows = await get('/api/runs?days=30');
   const el = document.getElementById('runs');
@@ -825,7 +930,11 @@ async function publishedPage(){
   const r = await fetch('/p/'+f.dataset.slug,{credentials:'same-origin'});
   f.srcdoc = r.ok ? await r.text() : '<p style="font:14px system-ui;padding:20px">Could not load this page.</p>';
 }
-if(TAB==='home'){ home(); imports(); } else if(TAB==='ask') ask(); else if(TAB==='reports') reports(); else publishedPage();
+if(TAB==='home'){ home(); imports(); }
+else if(TAB==='board'){ board(); setInterval(board, 120000); }
+else if(TAB==='ask') ask();
+else if(TAB==='reports') reports();
+else publishedPage();
 </script></body></html>`;
   return new Response(html, { headers: { "content-type": "text/html;charset=utf-8" } });
 }

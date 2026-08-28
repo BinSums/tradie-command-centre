@@ -130,6 +130,21 @@ rather than investigating.
 Every `wrangler` command from here on runs in `~/.command-centre/worker`, never in the plugin
 folder.
 
+## Step 5b of 10: name the numbers
+
+The dashboard only shows a tile for a number it has a label for, so seed the standard set now.
+Without this the dashboard is permanently blank no matter how many reports run, which looks
+exactly like a broken install.
+
+```bash
+npx wrangler d1 execute <business-slug>-cc-db --remote --command "INSERT OR REPLACE INTO metric_meta (key,label,unit,better,sort,tile,grp) VALUES ('cash_at_bank','Cash at bank','money','up',1,1,'Money'),('debtors_total','Owed to us','money','down',2,1,'Money'),('debtors_over_60','Invoices 60d+','count','down',3,1,'Money'),('debtor_days','Debtor days','days','down',4,1,'Money'),('revenue_mtd','Revenue MTD','money','up',5,1,'Money'),('quotes_out','Quotes out','count','up',6,1,'Pipeline'),('quotes_value','Quoted value','money','up',7,1,'Pipeline'),('jobs_active','Jobs active','count','up',8,1,'Work'),('jobs_uninvoiced_value','Finished not invoiced','money','down',9,1,'Work')"
+```
+
+`better` decides which direction shows green: debtor days falling is good, quoted value falling
+is not. `grp` is the column it sits under on the Board.
+
+If they asked for something else in step 9, add its label here too when you build it.
+
 ## Step 6 of 10: connect the reports to it
 
 ```bash
