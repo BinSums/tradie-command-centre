@@ -1259,14 +1259,21 @@ async function conLoad(){
         delta = '<i class="'+(m.better==='flat'?'':(good?'up':'dn'))+'">'+(pc>0?'+':'')+pc.toFixed(0)+'%</i>';
       }
     }
+    /* The bar shows where a number sits against its own recent range, which needs a
+       range to exist. On a new install every metric is its own peak, so a full bar
+       is meaningless and on a down-is-good metric it paints day one bright red.
+       Below four readings there is no history to place it against, so no bar. */
     const ratio = Math.max(0, Math.min(1, Math.abs(last.value)/cap));
+    const hasRange = ser.length >= 4;
     let cls = 'con-fill';
-    if(m.better==='down') cls += ratio>0.8 ? ' bad' : (ratio>0.55 ? ' warn' : '');
+    if(hasRange && m.better==='down') cls += ratio>0.8 ? ' bad' : (ratio>0.55 ? ' warn' : '');
+    const bar = hasRange
+      ? '<div class="con-bar"><div class="'+cls+'" style="width:'+(ratio*100).toFixed(1)+'%"></div></div>'
+      : '';
     const gname = m.grp || 'Numbers';
     (groups[gname] = groups[gname]||[]).push(
       '<div><div class="con-mrow"><span class="con-ml">'+esc(m.label)+'</span>'+
-      '<span class="con-mv">'+fmt(last.value,m.unit)+delta+'</span></div>'+
-      '<div class="con-bar"><div class="'+cls+'" style="width:'+(ratio*100).toFixed(1)+'%"></div></div></div>');
+      '<span class="con-mv">'+fmt(last.value,m.unit)+delta+'</span></div>'+bar+'</div>');
   }
   const numPanes = Object.keys(groups).map(g=>
       '<div class="con-pane"><h4>'+esc(g)+'</h4><div>'+groups[g].join('')+'</div></div>').join('')
