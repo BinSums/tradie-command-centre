@@ -120,9 +120,18 @@ Set these up as scheduled tasks on their machine. Confirm the timezone matches s
 
 This is the part that fails if you skip it, so do not skip it.
 
-Tradify has no API. The jobs and quotes routine reads a CSV they export by hand. Show them
-once, in Tradify: Jobs, then Options, then Export to File; and Quotes, same path. Save both
-into `~/.command-centre/imports/`. Tell them plainly: **if they stop dropping the export,
+Tradify has no API. The jobs and quotes routine reads a CSV they export by hand. The two
+exports sit behind different controls, so show them both once rather than describing one:
+
+- **Jobs**: the Jobs page, filter or tick what they want (ticking nothing exports everything
+  in the current tab), then **Options** in the top right, then **Export Jobs to File**.
+- **Quotes**: the Quotes page, tick what they want, then the **Export icon**. There is no
+  Options menu on this one.
+- **Better still, if they will do it**: the **Reports** page has a *Job Financial Report*,
+  which carries job values and costs the plain Jobs export does not. Download arrow, then
+  Download CSV File.
+
+Save them into `~/.command-centre/imports/`. Tell them plainly: **if they stop dropping the export,
 the jobs numbers stop updating and go stale rather than going blank.** The routine says how
 old its data is on every card for exactly this reason.
 

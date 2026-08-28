@@ -16,6 +16,14 @@ Look in `~/.command-centre/imports/` for the most recent files. Tradify names ex
 type, so match on content rather than an exact filename, which changes between versions.
 Expect columns for job number, customer, description, status, value and dates.
 
+Three different exports may turn up, and they are not interchangeable:
+
+- The **Jobs** export (Jobs page, Options, Export Jobs to File) carries status and dates.
+- The **Quotes** export (Quotes page, Export icon) carries quote value and state.
+- The **Job Financial Report** (Reports page, Download CSV File) carries job value and cost,
+  which the plain Jobs export does not. If this one is present, prefer it for anything
+  involving money, and say on the card which export a figure came from.
+
 Archive what you read so the next run can diff against it:
 
 ```bash
