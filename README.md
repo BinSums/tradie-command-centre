@@ -11,7 +11,7 @@ never pass through anyone else's infrastructure.
 
 ```
 /plugin marketplace add bensims/tradie-command-centre
-/plugin install tradie-command-centre@sims-business-tools
+/plugin install tradie-cc@sims-business-tools
 /tradie-cc:setup
 ```
 
@@ -58,7 +58,7 @@ run picks it up, acts on it, and reports back on the card.
 The whole dashboard runs on a laptop with sample data and no accounts at all:
 
 ```bash
-bash plugins/tradie-command-centre/scripts/demo.sh
+bash plugins/tradie-cc/scripts/demo.sh
 ```
 
 Then open http://127.0.0.1:8799 with the password `demo`.

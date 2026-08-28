@@ -124,10 +124,10 @@ td strong{white-space:nowrap}
   <div class="toc">
     <a href="#s1"><span class="n">01</span><span class="t">What this is</span><span class="d">And what it replaces</span></a>
     <a href="#s2"><span class="n">02</span><span class="t">What you see each day</span><span class="d">The dashboard, explained</span></a>
-    <a href="#s3"><span class="n">03</span><span class="t">The three routines</span><span class="d">What each one looks for</span></a>
+    <a href="#s3"><span class="n">03</span><span class="t">The routines</span><span class="d">What each one looks for</span></a>
     <a href="#s4"><span class="n">04</span><span class="t">Where the numbers come from</span><span class="d">Xero, Tradify, your spreadsheet</span></a>
     <a href="#s5"><span class="n">05</span><span class="t">Before you start</span><span class="d">Five accounts, four are free</span></a>
-    <a href="#s6"><span class="n">06</span><span class="t">Setting it up</span><span class="d">Fifteen minutes, once</span></a>
+    <a href="#s6"><span class="n">06</span><span class="t">Setting it up</span><span class="d">Twenty minutes, once</span></a>
     <a href="#s7"><span class="n">07</span><span class="t">The export habit</span><span class="d">The part that will catch you out</span></a>
     <a href="#s8"><span class="n">08</span><span class="t">Using it day to day</span><span class="d">Cards, the list, asking for things</span></a>
     <a href="#s9"><span class="n">09</span><span class="t">When something looks wrong</span><span class="d">Troubleshooting</span></a>
@@ -233,7 +233,7 @@ td strong{white-space:nowrap}
 </section>
 
 <section id="s3">
-  <div class="sec-head"><div class="num">03</div><h2>The three routines</h2></div>
+  <div class="sec-head"><div class="num">03</div><h2>The routines</h2></div>
   <div class="stack-lg">
     <p>Each one runs on a schedule you set, does its work, and posts a card. You can turn any of
     them off. The advice is to start with the morning brief alone for a fortnight and add the
@@ -282,6 +282,19 @@ td strong{white-space:nowrap}
         <li><strong>The pipeline.</strong> Quoted and undecided against work booked, which is the
         number that tells you whether next month is full.</li>
       </ul>
+    </div>
+    <div class="panel">
+      <div class="eyebrow">Nightly, 4.41am</div>
+      <h3>Routine audit</h3>
+      <p>The one you never look at, and the one that keeps the others honest. The routines run
+      without anybody watching, which means when one of them quietly fails to do a step, nothing
+      says so. The card still appears. The number is just missing.</p>
+      <p>This checks every run from the night before for exactly that, repairs what it can on the
+      spot, and tells you about anything it cannot fix itself. It also notices when the Tradify
+      export has gone quiet and when a routine has stopped running altogether.</p>
+      <p><strong>Leave this one switched on even if you turn the others off.</strong> Without it
+      the failure mode is not a dashboard that breaks, it is a dashboard that looks fine and is
+      quietly wrong.</p>
     </div>
   </div>
 </section>
@@ -372,10 +385,11 @@ td strong{white-space:nowrap}
   <div class="sec-head"><div class="num">06</div><h2>Setting it up</h2></div>
   <div class="stack-lg">
     <p>You do not follow these steps by hand. You install the plugin, type one command, and
-    Claude walks the sequence with you, asking four questions along the way. The steps are
-    written out here so you can see what it is doing rather than watching it happen blind.</p>
-    <pre><code>/plugin marketplace add &lt;the address I give you&gt;
-/plugin install tradie-command-centre
+    Claude walks the sequence with you, asking four questions along the way. It takes about
+    twenty minutes. The steps are written out here so you can see what it is doing rather than
+    watching it happen blind.</p>
+    <pre><code>/plugin marketplace add bensims/tradie-command-centre
+/plugin install tradie-cc@sims-business-tools
 /tradie-cc:setup</code></pre>
     <p class="cap">Plugin documentation, if you want to read about the mechanism itself:
     <a href="https://docs.claude.com/en/docs/claude-code/plugins">docs.claude.com/en/docs/claude-code/plugins</a></p>
@@ -414,9 +428,30 @@ npx wrangler d1 execute your-business-cc-db --remote --file=schema.sql</code></p
         whole loop works before anyone walks away from it.</p>
       </div></div>
       <div class="step"><div class="sb">
+        <h3>It sets the permissions</h3>
+        <p>So a 7am run never stops to ask permission for something nobody is awake to approve.
+        It adds a specific list of things the routines are allowed to do, shows you that list
+        first, and backs up your settings before changing anything. It does not remove anything
+        you already had.</p>
+      </div></div>
+      <div class="step"><div class="sb">
+        <h3>You fill in ten minutes about the business</h3>
+        <p>Busy season, how long a typical job takes you, your payment terms, who is always slow
+        to pay, and anything a routine should never chase. This is the boring step and it is the
+        one that decides whether the advice fits your business or reads like it came off the
+        internet.</p>
+      </div></div>
+      <div class="step"><div class="sb">
         <h3>It schedules the routines</h3>
-        <p>Pick which ones and at what time. Start with the morning brief on its own. One habit
-        that sticks beats three that get ignored, and the others take a minute to add later.</p>
+        <p>Pick which ones and at what time. Start with the morning brief plus the nightly audit,
+        and add the other two after a fortnight. One habit that sticks beats three that get
+        ignored.</p>
+      </div></div>
+      <div class="step"><div class="sb">
+        <h3>It runs one while you watch</h3>
+        <p>Nothing finishes on a promise. The morning brief runs there and then, you look at the
+        card together, and you check the Xero figures on it are really yours. Anything wrong gets
+        fixed while somebody is still sitting in front of it.</p>
       </div></div>
     </div>
     <p class="cap">If you want to understand the tools underneath:
@@ -616,6 +651,18 @@ cc.sh get   /api/assistant-queue           what has been asked for</code></pre>
         every request with a message naming the one that is missing, rather than starting up
         unprotected.</li>
       </ul>
+    </div>
+
+    <div class="stack">
+      <h3>How it runs unattended</h3>
+      <p>The routines run under a permission mode that does not prompt, paired with an explicit
+      allowlist of what they may do. Deleting files, pushing code and sending mail are all
+      deliberately left off it and still prompt.</p>
+      <p>The cost of not prompting is that a call outside the allowlist is refused silently: the
+      run continues and the card still posts, with a gap where the data should be. That is the
+      single failure mode of this design, and it is why the nightly audit exists and why it reads
+      the previous runs rather than trusting them. Findings are grouped by which routine lost the
+      call, because a count with no owner never gets fixed.</p>
     </div>
 
     <div class="panel">

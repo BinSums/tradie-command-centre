@@ -6,7 +6,7 @@ Notes for me, not for them. The client-facing version is `README.md` and the man
 
 ```
 /plugin marketplace add bensims/tradie-command-centre
-/plugin install tradie-command-centre@sims-business-tools
+/plugin install tradie-cc@sims-business-tools
 /tradie-cc:setup
 ```
 
@@ -18,7 +18,7 @@ If I am sitting with them and would rather not publish yet, the same thing works
 
 ```
 /plugin marketplace add /path/to/tradie-command-centre
-/plugin install tradie-command-centre@sims-business-tools
+/plugin install tradie-cc@sims-business-tools
 ```
 
 A private repo also works but they need a GitHub account with access and `gh` authenticated,

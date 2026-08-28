@@ -1,5 +1,5 @@
 {
-  "name": "tradie-command-centre",
+  "name": "tradie-cc",
   "description": "One dashboard for a trades or landscaping business. Connects Xero, takes Tradify CSV exports and your quoting spreadsheet, and runs scheduled routines that write a morning brief, a cash and debtors watch, and a jobs and quotes pipeline to a private dashboard you own. Deploys to your own Cloudflare account: your data never leaves it.",
   "version": "0.1.0",
   "author": {
