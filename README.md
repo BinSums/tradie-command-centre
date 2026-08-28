@@ -9,15 +9,27 @@ never pass through anyone else's infrastructure.
 
 ## Install
 
+Never done anything like this before? Follow **Start Here**
+(`plugins/tradie-cc/docs/start-here.html`). It assumes you have no software installed and
+nobody helping, and takes about an hour.
+
+If you already have Claude and Node.js:
+
 ```
 /plugin marketplace add bensims/tradie-command-centre
 /plugin install tradie-cc@sims-business-tools
 /tradie-cc:setup
 ```
 
-Setup takes about twenty minutes and asks you four questions. It creates the database, deploys
-the dashboard, sets the passwords, schedules the routines and walks you through the one habit
-the system depends on.
+Setup finds anything missing, tells you how to fix it in plain words, then creates the
+database, deploys the dashboard, sets the passwords, schedules the routines, and proves it
+works by reading two real figures off your first report before it finishes.
+
+If anything ever looks wrong afterwards:
+
+```
+/tradie-cc:check
+```
 
 ## What you need
 

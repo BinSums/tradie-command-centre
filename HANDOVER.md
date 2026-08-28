@@ -1,8 +1,15 @@
 # Handing this to a client
 
-Notes for me, not for them. The client-facing version is `README.md` and the manual PDF.
+Notes for me. The client gets one link and does the rest themselves.
 
-## What they run
+## The whole handoff
+
+Send them the Start Here guide. That is it. It takes them from owning no software to a
+working dashboard without me being present, present in the room, or on the phone.
+
+`plugins/tradie-cc/docs/start-here.html`, also published as an artifact.
+
+They end up typing three lines:
 
 ```
 /plugin marketplace add bensims/tradie-command-centre
@@ -10,19 +17,29 @@ Notes for me, not for them. The client-facing version is `README.md` and the man
 /tradie-cc:setup
 ```
 
-Three lines. The first two need this repo to be **public on GitHub**, which is fine: there is
-nothing secret in it. Every credential is created during setup and lives in their Cloudflare
-account and their `~/.command-centre/env`, never in here.
+Everything after that is a conversation between them and Claude. `commands/setup.md` is
+written on the assumption that the person reading it has never used a terminal and has nobody
+helping, so it finds every missing prerequisite first, explains each in plain words, and
+verifies its own work at the end by reading two real Xero figures back to them.
 
-If I am sitting with them and would rather not publish yet, the same thing works from a folder:
+If anything ever looks wrong afterwards they type `/tradie-cc:check`, which diagnoses,
+repairs what it can, and reports the rest in plain words.
 
-```
-/plugin marketplace add /path/to/tradie-command-centre
-/plugin install tradie-cc@sims-business-tools
-```
+## HARD PREREQUISITE: the repo must be public on GitHub
 
-A private repo also works but they need a GitHub account with access and `gh` authenticated,
-which is friction for a landscaper. Public repo is the right answer.
+**Self-service does not work until this is done.** The first line of the guide is
+`/plugin marketplace add bensims/tradie-command-centre`, and there is currently no remote.
+There is nothing secret in the repo: every credential is created during their setup and lives
+in their Cloudflare account and their `~/.command-centre/env`.
+
+A local folder path works for an install I attend, but not for a handoff.
+
+## Still not rehearsed
+
+`/tradie-cc:setup` has never been run against a real Cloudflare account. In an attended
+install that is a risk. **In an unattended handoff it is the whole product**, because there is
+nobody to catch it when it goes wrong. Rehearse it end to end on my own Cloudflare, then delete
+what it made, before sending the guide to anybody.
 
 ## What setup actually does to their machine
 

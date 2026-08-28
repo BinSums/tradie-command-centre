@@ -1,89 +1,127 @@
 ---
-description: Set up the Command Centre. Deploys the dashboard to your own Cloudflare account, connects Xero, sets the permissions so routines run unattended, and schedules them.
+description: Set up the Command Centre from scratch. Checks what is missing, tells you how to fix it in plain words, then builds and deploys everything and schedules the routines.
 ---
 
 # Set up the Command Centre
 
-You are walking a business owner or their office manager through a one-off install. They are
-not a developer. Explain each step in one plain sentence before running it, and never print a
-secret into the chat.
+**Assume the person reading your messages has never used a terminal, has nobody helping them,
+and is running a trades business.** They typed one command and everything else is on you.
 
-Everything deploys into **their** Cloudflare account and **their** Xero. Say that out loud at
-the start, because it is the first thing anyone asks.
+That changes how you work here:
 
-Work through this in order. Do not skip step 6 or step 7: without them the routines will run
-but quietly lose work, which is worse than not running.
+- **Never show a raw error.** Translate it. "Node.js is not installed yet" beats a stack trace.
+- **Never say "stop" without a next action.** Say exactly what to click, then wait and re-check.
+- **One thing at a time.** Ask one question, get one answer, move on. Do not send a numbered
+  list of six things and hope.
+- **Say what you are about to do before you do it**, in one plain sentence, and say what
+  happened after. Silence for two minutes reads as broken.
+- **Never paste a password or a token into the chat**, including to confirm it.
+- If something genuinely cannot be fixed from here, say so plainly, say what you did manage to
+  do, and tell them it is safe to close and come back.
 
-## Step 0: check the prerequisites
+Track your progress out loud, like "step 3 of 9". People abandon installs when they cannot tell
+how far in they are.
 
-Stop if any of these is missing.
+---
 
-- **Node.js 20+.** `node --version`. If missing, send them to nodejs.org/en/download.
-- **A Cloudflare account.** `npx wrangler whoami` shows who is signed in. If nobody is,
-  `npx wrangler login` opens a browser.
-- **Xero connected to Claude.** They do this themselves: Settings, then Connectors, then Xero,
-  then Connect, sign in and approve. Verify by asking for their organisation name through the
-  Xero tools. **If the Xero tools are not available, stop here.** The routines have nothing to
-  read without it and installing the rest would produce empty cards.
+## Step 1 of 9: is anything missing?
 
-## Step 1: ask four things
+Check all of these before asking them for anything. Do not report problems one at a time as you
+trip over them: find everything first, then give them one short list of what to fix.
 
-Ask in one message. Take sensible defaults if they do not care.
+```bash
+node --version
+npx wrangler whoami
+```
+
+**If `node` is missing or below v20.** Say: "You need one free program installed first, called
+Node.js. It takes about two minutes." Send them to <https://nodejs.org/en/download>, tell them
+to pick the big green LTS button for their computer, run the file it downloads, and click
+through, accepting the defaults. Then tell them to **fully quit Claude and reopen it** (this is
+the part everyone misses: a new program is not visible to an app that was already running).
+Then have them run `/tradie-cc:setup` again.
+
+**If `wrangler whoami` says nobody is signed in.** They need a free Cloudflare account. This is
+where the dashboard will live and it is theirs, not yours. Say that. Send them to
+<https://dash.cloudflare.com/sign-up>, have them sign up with their work email and confirm the
+email, then run `npx wrangler login` for them, which opens their browser to an "Allow" button.
+Wait for it. It can take them a minute to find the browser window.
+
+**Xero.** Ask them to open Settings, then Connectors, find Xero, click Connect, sign in to Xero
+and approve. Then verify it yourself by asking for their organisation name through the Xero
+tools and reading the real name back to them: "I can see Xero now, it says Henderson Landscaping
+Pty Ltd, is that right?" That is the check. Do not take their word for it.
+
+**If Xero will not connect**, it is nearly always that the person at the keyboard is not the one
+with the Xero login. Ask directly: "Are you the person who signs in to Xero, or is that your
+bookkeeper?" If it is the bookkeeper, stop cleanly. Tell them everything else can be done now
+but the dashboard would have no figures in it, so it is worth waiting. Offer to pick up exactly
+here when the bookkeeper is available.
+
+## Step 2 of 9: four questions
+
+Ask them in **one** message, and say up front it is the only time they need to decide anything.
 
 1. Business name, as it should appear at the top of the dashboard.
-2. Timezone (default `Australia/Sydney`).
-3. Currency (default `AUD`).
-4. A password for the dashboard. **Do not suggest one and do not echo it back.** Tell them to
-   pick one and have it ready to type into a prompt.
+2. Their timezone. Offer `Australia/Sydney` as the default and let them just say yes.
+3. Their currency. Default `AUD`.
+4. A password for the dashboard. **Tell them to pick one and have it ready to type in a moment.
+   Do not ask them to type it into the chat.** Say plainly: "I will not see it, and neither will
+   anyone else."
 
-## Step 2: create the database
+## Step 3 of 9: build the database
+
+Say first: "I am making a database inside your own Cloudflare account. Nothing leaves it."
 
 ```bash
 cd "${CLAUDE_PLUGIN_ROOT}/worker"
 npx wrangler d1 create <business-slug>-cc-db
 ```
 
-That prints a `database_id`. Copy `wrangler.toml.template` to `wrangler.toml` and fill in
-`__WORKER_NAME__`, `__BUSINESS_NAME__`, `__TIMEZONE__`, `__CURRENCY__`, `__DB_NAME__` and
-`__DB_ID__`. Write it with a python heredoc, not the Write tool. Then build the tables:
+Take the `database_id` from the output. Write `wrangler.toml` from `wrangler.toml.template`
+using a python heredoc, filling `__WORKER_NAME__`, `__BUSINESS_NAME__`, `__TIMEZONE__`,
+`__CURRENCY__`, `__DB_NAME__` and `__DB_ID__`. Then:
 
 ```bash
 npx wrangler d1 execute <business-slug>-cc-db --remote --file=schema.sql
 ```
 
-`--remote` matters. Without it you build the tables on their laptop and the deployed dashboard
-talks to an empty database.
+**`--remote` is not optional.** Without it the tables are built on their laptop while the live
+dashboard talks to an empty database, and the symptom is a dashboard that loads perfectly with
+nothing in it and no error anywhere. If you ever see that later, this is why.
 
-## Step 3: set the three secrets
+## Step 4 of 9: three passwords
 
-Generate the two random ones yourself and never show them:
+Generate the two random ones yourself and never display them:
 
 ```bash
 openssl rand -base64 32
 ```
 
-`wrangler secret put` prompts for the value, so nothing lands in shell history:
+Explain in one line: "One is the password you just chose. The other two are long random keys I
+generate, one to keep your login secure and one so the daily reports can post in."
+
+`wrangler secret put` prompts for the value, so nothing is saved in their history:
 
 ```bash
-npx wrangler secret put DASH_PASSWORD    # they type their own password
-npx wrangler secret put COOKIE_SECRET    # paste a generated random string
-npx wrangler secret put INGEST_SECRET    # paste a second, different one
+npx wrangler secret put DASH_PASSWORD    # they type theirs, you look away
+npx wrangler secret put COOKIE_SECRET
+npx wrangler secret put INGEST_SECRET
 ```
 
-## Step 4: deploy
+## Step 5 of 9: put it online
 
 ```bash
 npx wrangler deploy
 ```
 
-Open the URL it prints, sign in, and confirm the dashboard loads. It will be empty. That is
-correct: nothing has run yet.
+Give them the URL and ask them to open it and sign in **now**, while you are here. Tell them
+before they click: "It will look empty. That is right, nothing has run yet."
 
-## Step 5: install the helper at a stable path
+If the password does not work, it was mistyped into the prompt. Just set `DASH_PASSWORD` again
+rather than investigating.
 
-The routines call the helper by absolute path, and that path has to be stable because the
-permission allowlist names it. The plugin directory is not stable: it changes when the plugin
-updates. So copy it out.
+## Step 6 of 9: connect the reports to it
 
 ```bash
 mkdir -p ~/.command-centre/bin ~/.command-centre/imports
@@ -91,119 +129,100 @@ cp "${CLAUDE_PLUGIN_ROOT}/scripts/cc.sh" ~/.command-centre/bin/cc.sh
 chmod +x ~/.command-centre/bin/cc.sh
 ```
 
-Write `~/.command-centre/env` with mode 600, using a python heredoc:
+Write `~/.command-centre/env` with mode 600 via a python heredoc, holding `CC_URL` and
+`CC_TOKEN` (the `INGEST_SECRET` from step 4).
 
-```
-CC_URL=https://<the deployed url>
-CC_TOKEN=<the INGEST_SECRET from step 3>
-```
-
-Then prove the loop works before going any further:
+Then prove the whole loop works before going further:
 
 ```bash
-bash ~/.command-centre/bin/cc.sh postj /ingest '{"skill_id":"setup","title":"Setup complete","status":"ok","summary_html":"<p>The Command Centre is live and the routines can post to it.</p>","detail_html":"<p>Posted by the setup command to prove the connection works end to end.</p>"}'
+bash ~/.command-centre/bin/cc.sh postj /ingest '{"skill_id":"setup","title":"Setup complete","status":"ok","summary_html":"<p>Your Command Centre is live.</p>","detail_html":"<p>Posted during setup to prove the connection works.</p>"}'
 ```
 
-Refresh the Reports tab. If the card is there, the plumbing is done. If it is not, the token in
-`env` does not match the deployed `INGEST_SECRET`. Set it again rather than guessing.
+Ask them to refresh and tell you if they can see a card called "Setup complete". **Their answer
+is the test, not the command exiting cleanly.** If they cannot see it, the token in `env` does
+not match the deployed one: set `INGEST_SECRET` again and rewrite `env` with the same value.
 
-## Step 6: permissions, so the routines run unattended
+## Step 7 of 9: let the reports run on their own
 
-**This is the step that decides whether any of it works at 7am.**
+Say: "This lets the daily reports run at 7am without stopping to ask permission, since nobody
+is awake to answer."
 
-The routines run with `defaultMode: "dontAsk"` so no approval prompt blocks a run nobody is
-watching. The trade is that any call outside the allowlist is **denied silently** and the run
-carries on having lost that step.
+Xero is the part that cannot be prepared in advance, because its connector name is different on
+every computer. Find the real Xero tool names now, take everything up to and including the
+second pair of underscores, and add `*`. It looks like `mcp__something__*`.
 
-Xero is the part that cannot be hardcoded: its connector server name is generated per user. So
-discover the real tool names first. List the available tools, find the Xero ones, and note the
-prefix, which looks like `mcp__<something>__get_profit_and_loss`. Take everything up to and
-including the second pair of underscores and add `*`.
-
-Then merge the allowlist into their settings. Dry run first and show them what it will add:
+Show them what will change, then do it:
 
 ```bash
 python3 "${CLAUDE_PLUGIN_ROOT}/scripts/install-permissions.py" --dry-run --mcp "mcp__<their-xero-prefix>__*"
 python3 "${CLAUDE_PLUGIN_ROOT}/scripts/install-permissions.py" --mcp "mcp__<their-xero-prefix>__*"
 ```
 
-It never overwrites. It adds what is missing, backs up first, and re-parses what it wrote.
+Tell them it backed up their settings first and removed nothing.
 
-**Get the Xero prefix wrong and every Xero call in every routine is denied silently**, and the
-cards report confidently on half the business. If you are not certain you have the right prefix,
-run a routine by hand and check the card has real Xero numbers on it before you leave.
+**If you get the Xero prefix wrong, every Xero call in every report is refused silently and the
+dashboard reports confidently on half their business.** Step 9 is what catches that, so do not
+skip it.
 
-## Step 7: write the project rules file
+## Step 8 of 9: the routines, and ten minutes about the business
 
-Copy `templates/CLAUDE.md` to the directory the routines will run from, filling in the business
-name, the dashboard URL and the owner's name. Use a python heredoc.
+Copy `templates/CLAUDE.md` into the folder the routines will run from, filling in the business
+name, dashboard URL and their name. Use a python heredoc.
 
-This is what makes the runs behave the way they should when nobody is watching: fix rather than
-report, escalate only what needs the owner, and never use `Edit` or `Write` outside `/tmp`.
+Then **go through the "About this business" section with them, one question at a time.** Busy
+season, how long a normal job takes, payment terms, who is always slow to pay, anything a report
+should never chase. Ask, wait, write down what they say in their words.
 
-Then walk them through the "About this business" section at the bottom and fill it in together.
-Busy season, normal job turnaround, payment terms, who is always slow, and anything a routine
-should never chase. Ten minutes here is the difference between advice that fits and advice that
-reads like it came off the internet. Do not skip it because it is the boring part.
+Tell them why: "This is what stops it giving you advice that sounds like it came off the
+internet." It is the step people want to skip and the one that decides whether they keep using
+it.
 
-## Step 8: schedule the routines
+Then schedule these as scheduled tasks. Each prompt must be self-contained, because a scheduled
+run starts fresh with no memory: name the skill, the working directory, and that it must load
+`standing-rules` first.
 
-Create these as scheduled tasks. Each prompt must be self-contained, because a scheduled run
-starts fresh with no memory of this conversation: name the skill to load, the working directory,
-and the fact that it must load `standing-rules` first.
+| Routine | Cron |
+| --- | --- |
+| Morning brief | `52 6 * * 1-5` |
+| Routine audit | `41 4 * * *` |
+| Cash and debtors (offer later) | `7 8 * * 1` |
+| Jobs and quotes (offer later) | `33 8 * * 1` |
 
-| Routine | When | Cron |
-| --- | --- | --- |
-| Morning brief | Weekdays, early | `52 6 * * 1-5` |
-| Cash and debtors | Mondays | `7 8 * * 1` |
-| Jobs and quotes | Mondays | `33 8 * * 1` |
-| **Routine audit** | **Nightly** | `41 4 * * *` |
+**Set up only the morning brief and the audit.** Say the other two can be added any time by
+asking. Two habits that stick beat four that get ignored.
 
-Two things about those times. They are deliberately off the hour and off the half hour, because
-everything scheduled at `0 9` in the world fires at the same instant. And they are spaced by
-more than a few minutes so two routines never queue behind each other.
+Tell them plainly: **these run while Claude is open on this computer.** If the machine is asleep
+at 7am, the report runs when they next open it. If this is a laptop that goes home, say so now
+and suggest leaving it on, or using the office computer instead.
 
-**Schedule the audit even if they only want one routine.** It is the only thing that notices a
-run silently losing calls, and without it the failure mode is a dashboard that looks fine and is
-quietly wrong.
+## Step 9 of 9: prove it works, then hand over
 
-Recommend starting with the morning brief plus the audit, and adding the other two after a
-fortnight. One habit that sticks beats three that get ignored.
+Do not finish on a promise.
 
-Tell them scheduled tasks run while the app is open, and that a task due while it was closed
-runs at next launch. On a machine that sleeps overnight, a 4am audit fires in the morning.
-
-## Step 9: the export habit
-
-Tradify has no API, so the jobs and quotes routine reads a CSV somebody exports by hand. The two
-exports sit behind different controls, so show them both once rather than describing one:
-
-- **Jobs**: the Jobs page, filter or tick what they want (ticking nothing exports everything in
-  the current tab), then **Options** in the top right, then **Export Jobs to File**.
-- **Quotes**: the Quotes page, tick what they want, then the **Export icon**. There is no Options
-  menu on this one.
-- **Better still, if they will do it**: the **Reports** page has a *Job Financial Report*, which
-  carries job values and costs the plain Jobs export does not. Download arrow, then Download CSV
-  File.
-
-Save them into `~/.command-centre/imports/`. Tell them plainly: **if they stop dropping the
-export, the jobs numbers go stale rather than going blank.** Every card states the export's age
-and the routine turns amber past seven days, but the habit is theirs.
-
-## Step 10: run one by hand before you leave
-
-Do not finish on a promise. Run the morning brief now, look at the card together, and confirm
-the Xero numbers on it are real. Then run:
+1. **Run the morning brief now.** Look at the card with them.
+2. **Read two real figures off it and ask them to confirm.** "It says you have $48,210 in the
+   bank and $42,650 owed to you. Does that sound right?" If the numbers are missing or wrong,
+   the Xero prefix in step 7 is wrong. Fix it and run it again.
+3. **Check nothing was refused:**
 
 ```bash
 python3 "${CLAUDE_PLUGIN_ROOT}/scripts/scan-denials.py" 1
 ```
 
-If that run lost any calls, fix it now while you are still sitting there. This is the single
-best predictor of whether the thing is still working in a month.
+Fix anything it found now.
 
-## Finally
+Then show them the Tradify export, which is the one job that stays theirs:
 
-Tell them the dashboard address, that it installs to a phone home screen from the browser share
-menu, and that anything they want it to watch can be said to Claude in plain English, which the
-queue picks up on the next run.
+- **Jobs**: the Jobs page, tick what they want or tick nothing for all of them, then
+  **Options** in the top right, then **Export Jobs to File**.
+- **Quotes**: the Quotes page, tick, then the **Export icon**. There is no Options menu on this
+  one, which is what catches people out.
+- Save both into the `imports` folder inside `.command-centre`.
+
+Tell them straight: **if that stops, the jobs and quotes numbers go stale rather than going
+blank.** Every card says how old the export is. Suggest they put a weekly reminder in their
+phone now, while you are still here.
+
+Finish with: the dashboard address, that it adds to a phone home screen from the browser share
+menu, that anything they want it to watch they can just say in plain English, and that if
+anything ever looks wrong they type `/tradie-cc:check`.

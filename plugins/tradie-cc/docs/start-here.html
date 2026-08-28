@@ -1,0 +1,270 @@
+<title>Setting Up Your Command Centre</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700&family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#f7f8f4; --card:#fff; --sunk:#eceee6; --ink:#151a13; --body:#3c443a; --mute:#6f776b;
+  --rule:#dee2d7; --green:#2b6038; --greenbg:#e5efe5; --amber:#8a5c10; --amberbg:#f8f0dd;
+  --typebg:#1b201a; --typefg:#f1f4ec; --typedim:#9aa394; --typecode:#a9dcbd;
+  --disp:'Archivo',system-ui,sans-serif; --txt:'IBM Plex Sans',system-ui,sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#101310; --card:#191d18; --sunk:#212620; --ink:#eff2ea; --body:#c4cabe; --mute:#8a917f;
+  --rule:#2b3029; --green:#6fb583; --greenbg:#1b2a1e; --amber:#cfa051; --amberbg:#2a2214;
+  --typebg:#050705; --typefg:#f1f4ec; --typedim:#8a9384; --typecode:#a9dcbd;
+}}
+:root[data-theme="dark"]{
+  --bg:#101310; --card:#191d18; --sunk:#212620; --ink:#eff2ea; --body:#c4cabe; --mute:#8a917f;
+  --rule:#2b3029; --green:#6fb583; --greenbg:#1b2a1e; --amber:#cfa051; --amberbg:#2a2214;
+  --typebg:#050705; --typefg:#f1f4ec; --typedim:#8a9384; --typecode:#a9dcbd;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--body);font:18px/1.68 var(--txt);-webkit-font-smoothing:antialiased}
+.wrap{max-width:660px;margin:0 auto;padding:44px 22px 130px}
+h1,h2,h3{font-family:var(--disp);color:var(--ink);margin:0;text-wrap:balance}
+h1{font-size:clamp(32px,7.5vw,44px);font-weight:700;letter-spacing:-.03em;line-height:1.07}
+h2{font-size:clamp(22px,5vw,28px);font-weight:600;letter-spacing:-.022em;line-height:1.2}
+h3{font-size:18px;font-weight:600;letter-spacing:-.01em}
+p{margin:0;max-width:60ch}
+a{color:var(--green);text-underline-offset:2px}
+strong{color:var(--ink);font-weight:600}
+ul{margin:0;padding-left:1.25em;max-width:58ch}
+li{margin-bottom:.45em}
+li::marker{color:var(--mute)}
+.lab{font:500 11px/1 var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--mute)}
+header{display:flex;flex-direction:column;gap:18px;padding-bottom:26px;border-bottom:2.5px solid var(--ink)}
+.lede{font-size:19.5px;line-height:1.6;color:var(--body);max-width:52ch}
+.step{margin-top:52px;display:flex;flex-direction:column;gap:18px}
+.shead{display:flex;flex-direction:column;gap:9px}
+.meta{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.chip{font:500 12px/1 var(--txt);letter-spacing:.02em;padding:7px 12px;border-radius:99px;
+  background:var(--sunk);color:var(--mute)}
+.chip.n{background:var(--green);color:#fff;font-weight:600;font-family:var(--mono);letter-spacing:.06em}
+.card{background:var(--card);border:1px solid var(--rule);border-radius:14px;padding:22px 24px;
+  display:flex;flex-direction:column;gap:12px}
+.expect{background:var(--greenbg);border-radius:12px;padding:16px 20px;display:flex;flex-direction:column;gap:6px}
+.expect .lab{color:var(--green)}
+.expect p{font-size:16.5px}
+.warn{background:var(--amberbg);border:1px solid var(--amber);border-radius:12px;padding:20px 22px;
+  display:flex;flex-direction:column;gap:9px}
+.warn .lab{color:var(--amber)}
+.type{background:var(--typebg);border-radius:12px;padding:20px 22px;display:flex;flex-direction:column;gap:11px}
+.type .lab{color:var(--typedim)}
+.type ol{margin:0;padding-left:1.3em;display:flex;flex-direction:column;gap:11px}
+.type li{margin:0;color:var(--typefg)}
+.type li::marker{color:var(--typedim);font-family:var(--mono);font-size:14px}
+.type code{display:inline-block;font:500 15px var(--mono);color:var(--typecode);word-break:break-all;line-height:1.5}
+.type p{color:var(--typedim);font-size:15px;max-width:52ch}
+.q{border-left:3px solid var(--green);padding-left:18px;display:flex;flex-direction:column;gap:5px}
+.q b{color:var(--ink);font-weight:600}
+.q span{font-size:16.5px;color:var(--mute)}
+.cost{display:flex;flex-direction:column;background:var(--card);border:1px solid var(--rule);
+  border-radius:14px;overflow:hidden}
+.cost div{display:flex;justify-content:space-between;gap:16px;align-items:baseline;
+  padding:15px 22px;border-bottom:1px solid var(--rule)}
+.cost div:last-child{border-bottom:0}
+.cost b{font-weight:600;color:var(--ink);font-size:17px}
+.cost span{color:var(--body);text-align:right;font-size:16px}
+footer{margin-top:62px;padding-top:24px;border-top:2.5px solid var(--ink);display:flex;flex-direction:column;gap:12px}
+@media (max-width:560px){ .wrap{padding:32px 17px 100px} body{font-size:17px} }
+</style>
+
+<div class="wrap">
+
+<header>
+  <div class="lab">Start here</div>
+  <h1>Setting up your Command Centre</h1>
+  <p class="lede">You do not need to be technical for this and you will not be typing anything
+  complicated. Set aside about an hour. You can stop after any step and pick it up later.</p>
+</header>
+
+<div class="step">
+  <div class="shead">
+    <div class="lab">What you will have at the end</div>
+    <h2>One screen, every morning</h2>
+  </div>
+  <p>A private web page you sign into with your own password, on your computer or your phone.
+  Every weekday morning it reads your Xero and tells you the one thing worth doing: work you
+  finished but never invoiced, an invoice that just tipped overdue, a quote going cold.</p>
+  <p>It all runs in accounts that belong to you. Nobody else can see your figures, including
+  the person who gave you this.</p>
+</div>
+
+<div class="step">
+  <div class="shead">
+    <div class="lab">Before you begin</div>
+    <h2>What it costs, honestly</h2>
+  </div>
+  <div class="cost">
+    <div><b>Claude subscription</b><span>Required. This is the real cost.<br>From claude.com/pricing</span></div>
+    <div><b>Cloudflare</b><span>Free to sign up.<br>Free tier covers a business this size.</span></div>
+    <div><b>Node.js</b><span>Free.</span></div>
+    <div><b>Xero and Tradify</b><span>No change to what you pay now.</span></div>
+  </div>
+  <p>You also need to be the person who can sign in to Xero. If that is your bookkeeper, get
+  them on the phone for two minutes at step 3, or do this sitting with them.</p>
+</div>
+
+<div class="step">
+  <div class="shead">
+    <div class="meta"><span class="chip n">Step 1</span><span class="chip">About 10 minutes</span></div>
+    <h2>Get Claude on your computer</h2>
+  </div>
+  <p>Go to <a href="https://claude.com/pricing">claude.com/pricing</a> and take out a Pro
+  subscription. Then download the app from <a href="https://claude.com/download">claude.com/download</a>.
+  It works on Mac and Windows.</p>
+  <p>Install it the way you would any program: on a Mac, drag it into Applications. On Windows,
+  run the file it downloads and click through. Then open it and sign in with the account you
+  just paid for.</p>
+  <div class="expect">
+    <div class="lab">What you should see</div>
+    <p>Once it opens, there is a tab along the top called <strong>Code</strong>. Click it. That
+    is where everything below happens. You are looking at a box you can type into.</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="shead">
+    <div class="meta"><span class="chip n">Step 2</span><span class="chip">About 5 minutes</span></div>
+    <h2>Install one free program</h2>
+  </div>
+  <p>It is called Node.js. You will never open it or look at it again, but the setup needs it to
+  build your dashboard.</p>
+  <p>Go to <a href="https://nodejs.org/en/download">nodejs.org/en/download</a> and click the big
+  green <strong>LTS</strong> button. It picks the right version for your computer on its own.
+  Run the file it downloads and click Next through the installer, accepting whatever it suggests.</p>
+  <div class="warn">
+    <div class="lab">Do not skip this bit</div>
+    <h3>Quit Claude completely, then open it again</h3>
+    <p>A program installed while Claude was already running is invisible to it until you restart.
+    On a Mac that means Claude, then Quit Claude, not just closing the window. This is the single
+    most common thing that goes wrong, and it looks like the setup is broken when it is not.</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="shead">
+    <div class="meta"><span class="chip n">Step 3</span><span class="chip">About 3 minutes</span></div>
+    <h2>Connect Xero</h2>
+  </div>
+  <p>This is how it reads your figures. You are giving Claude permission to look at your Xero,
+  and you can take that permission away again whenever you like.</p>
+  <ul>
+    <li>Open <strong>Settings</strong> in Claude</li>
+    <li>Go to <strong>Connectors</strong></li>
+    <li>Find <strong>Xero</strong> and click <strong>Connect</strong></li>
+    <li>Sign in to Xero and approve it</li>
+  </ul>
+  <div class="expect">
+    <div class="lab">What you should see</div>
+    <p>Xero showing as connected in that list. If it asks which organisation, pick your business.</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="shead">
+    <div class="meta"><span class="chip n">Step 4</span><span class="chip">About 2 minutes</span></div>
+    <h2>Type three lines</h2>
+  </div>
+  <p>Click into the <strong>Code</strong> tab. Type each line below and press Enter, one at a
+  time, waiting for each to finish. Copy and paste them if that is easier.</p>
+  <div class="type">
+    <div class="lab">Type these exactly</div>
+    <ol>
+      <li><code>/plugin marketplace add bensims/tradie-command-centre</code></li>
+      <li><code>/plugin install tradie-cc@sims-business-tools</code></li>
+      <li><code>/tradie-cc:setup</code></li>
+    </ol>
+    <p>The first two take a few seconds each. The third one starts talking to you.</p>
+  </div>
+  <div class="expect">
+    <div class="lab">What you should see</div>
+    <p>After the third line, Claude starts asking you questions. From here you are just having a
+    conversation. It does the work and tells you what it is doing as it goes.</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="shead">
+    <div class="meta"><span class="chip n">Step 5</span><span class="chip">About 25 minutes</span></div>
+    <h2>Answer its questions</h2>
+  </div>
+  <p>It will ask you for four things, then get on with it. There is nothing to work out in
+  advance except the password.</p>
+  <div class="q"><b>Your business name</b><span>Whatever should sit at the top of the dashboard.</span></div>
+  <div class="q"><b>Your timezone and currency</b><span>It will suggest the right ones. You can just say yes.</span></div>
+  <div class="q"><b>A password for the dashboard</b><span>Pick one now. Nobody else ever sees it, not Claude and not the person who gave you this.</span></div>
+  <p>Along the way it will ask you to sign up for a free Cloudflare account, which is where your
+  dashboard and your figures will live. It walks you through that when it gets there.</p>
+  <p>Near the end it spends ten minutes asking about your business: your busy season, how long a
+  normal job takes you, your payment terms, who is always slow to pay. <strong>Do not rush that
+  part.</strong> It is what stops the advice sounding like it came off the internet.</p>
+  <div class="expect">
+    <div class="lab">How you know it worked</div>
+    <p>Before it finishes, it runs your first morning report and reads two real numbers off it,
+    then asks you to confirm they are right. If those numbers are yours, everything is connected
+    properly.</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="shead">
+    <div class="lab">From then on</div>
+    <h2>What happens next</h2>
+  </div>
+  <p>Every weekday morning a new card appears on your dashboard. Open it on your phone with your
+  coffee. It takes thirty seconds to read and some mornings it will just tell you nothing needs
+  you, which is a real answer and worth knowing.</p>
+  <p>Anything you want it to keep an eye on, just say so in normal words in the Code tab.
+  Something like <em>"stop chasing Blackwood, they are on a payment plan"</em>. It picks that up
+  on the next run.</p>
+  <p>To put the dashboard on your phone: open the address in your phone browser, then the share
+  menu, then Add to Home Screen. It behaves like an app after that.</p>
+  <div class="warn">
+    <div class="lab">The one job that stays yours</div>
+    <h3>Export from Tradify once a week</h3>
+    <p>Tradify has no way to hand its information over automatically, so once a week somebody
+    exports a file and saves it into a folder. It takes about a minute and the setup shows you
+    exactly how.</p>
+    <p>If it stops, your cash and invoice figures carry on perfectly, because those come from
+    Xero. It is the jobs and quotes numbers that quietly go out of date. Every card tells you how
+    old that file is, so you will see it happening. Put a weekly reminder in your phone.</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="shead">
+    <div class="lab">If something goes wrong</div>
+    <h2>Two things to try</h2>
+  </div>
+  <div class="card">
+    <h3>While you are setting up</h3>
+    <p>Just say what happened, in normal words, in the same box you have been typing in.
+    "It says node is not recognised" or "the Xero screen did not appear" is plenty. It will work
+    out what to do. You cannot break anything by saying the wrong thing.</p>
+  </div>
+  <div class="card">
+    <h3>Later, if a report does not show up or a number looks wrong</h3>
+    <p>Open the Code tab and type this:</p>
+    <div class="type" style="margin-top:2px">
+      <ol><li><code>/tradie-cc:check</code></li></ol>
+    </div>
+    <p>It checks everything, fixes what it can on its own, and tells you in plain words if
+    anything needs you.</p>
+  </div>
+  <p>One thing worth knowing: the morning reports run on this computer, so it needs to be on and
+  Claude needs to be open around 7am. If it was asleep, the report runs the next time you open
+  it. If this is a laptop that goes home with you, consider running it on the office computer
+  instead.</p>
+</div>
+
+<footer>
+  <p class="lab">Built by Ben Sims, Lawn Tips</p>
+  <p style="font-size:16px;color:var(--mute)">Everything here runs in accounts you own and pay
+  for directly. There is no subscription to me and no account in the middle. If we never speak
+  again, it keeps working.</p>
+</footer>
+
+</div>
