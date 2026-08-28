@@ -1,6 +1,6 @@
 # Generated per install. The template is tracked; the filled-in copy is not.
-worker/wrangler.toml
-worker/.dev.vars
-worker/.wrangler/
+wrangler.toml
+.dev.vars
+.wrangler/
 node_modules/
 .DS_Store

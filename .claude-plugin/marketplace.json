@@ -1,0 +1,15 @@
+{
+  "name": "sims-business-tools",
+  "owner": {
+    "name": "Ben Sims",
+    "email": "bensims@lawntips.net"
+  },
+  "plugins": [
+    {
+      "name": "tradie-command-centre",
+      "source": "./plugins/tradie-command-centre",
+      "description": "One dashboard for a trades or landscaping business. Reads Xero live and your Tradify CSV exports, runs a morning brief, a cash and debtors watch and a jobs and quotes pipeline, and repairs its own plumbing with a nightly audit. Deploys to your own Cloudflare account.",
+      "category": "productivity"
+    }
+  ]
+}
