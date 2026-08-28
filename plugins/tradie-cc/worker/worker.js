@@ -478,6 +478,7 @@ const CONSOLE_BODY = (c) => `<div class="con">
       <div class="con-orbwrap"><canvas id="orb" width="900" height="900"></canvas></div>
       <div class="con-state" id="con-state">Ask me anything about the business</div>
       <div class="con-ans" id="con-ans"></div>
+      <div class="con-sugg" id="con-sugg"></div>
     </div>
     <div class="con-col" id="con-right"></div>
   </div>
@@ -784,6 +785,28 @@ main > .card::before,.board .pane::before,.tiles .card::before{
 .con-ans{margin-top:14px;max-width:min(560px,92%);text-align:center;font-size:14.5px;
   line-height:1.62;color:var(--ink);white-space:pre-wrap}
 .con-ans.err{color:var(--alert)}
+.con-sugg{display:flex;flex-wrap:wrap;gap:7px;justify-content:center;margin-top:16px;
+  max-width:min(620px,94%)}
+.con-sugg button{background:transparent;border:1px solid var(--con-line);color:var(--muted);
+  border-radius:99px;padding:7px 13px;font-size:12px;cursor:pointer;font-family:var(--con-read)}
+.con-sugg button:hover{color:var(--ink);border-color:var(--accent)}
+.con-vrow{display:flex;justify-content:space-between;align-items:center;gap:9px;
+  font-size:11.5px;padding:5px 0}
+.con-vrow span{font-family:var(--con-mono);font-size:9px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--con-label)}
+.con-sw{background:transparent;border:1px solid var(--con-line);color:var(--con-label);
+  font-family:var(--con-mono);font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;
+  padding:5px 10px;border-radius:99px;cursor:pointer}
+.con-sw.on{background:var(--accent);border-color:var(--accent);color:#fff}
+[data-theme="hud"] .con-sw.on,[data-theme="dark"] .con-sw.on{color:#04090b}
+.con-vsel{background:var(--bg);border:1px solid var(--con-line);color:var(--ink);
+  font-family:var(--con-read);font-size:11px;padding:4px 6px;border-radius:4px;max-width:150px}
+.con-run{display:flex;gap:8px;align-items:baseline;padding:5px 0;
+  border-bottom:1px solid var(--line);font-size:11.5px}
+.con-run:last-child{border-bottom:0}
+.con-run .dot{width:6px;height:6px;margin:0;flex:0 0 auto}
+.con-run .rt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.con-run .rw{font-family:var(--con-fig);font-size:10px;color:var(--con-label);flex:0 0 auto}
 .con-pane{border:1px solid var(--con-line);border-radius:var(--con-r);
   background:linear-gradient(180deg,var(--con-fill1),var(--con-fill2));
   padding:12px 14px;position:relative;display:flex;flex-direction:column;min-height:0}
@@ -1213,8 +1236,9 @@ function conSay(who, text){
 }
 
 async function conLoad(){
-  const [md, nd, todos, imps] = await Promise.all([
-    get('/api/metrics?days=90'), get('/api/notes'), get('/api/todos'), get('/api/import-status')
+  const [md, nd, todos, imps, runs] = await Promise.all([
+    get('/api/metrics?days=90'), get('/api/notes'), get('/api/todos'),
+    get('/api/import-status'), get('/api/runs?days=14')
   ]);
 
   const by = {};
@@ -1244,9 +1268,31 @@ async function conLoad(){
       '<span class="con-mv">'+fmt(last.value,m.unit)+delta+'</span></div>'+
       '<div class="con-bar"><div class="'+cls+'" style="width:'+(ratio*100).toFixed(1)+'%"></div></div></div>');
   }
-  document.getElementById('con-left').innerHTML =
-    Object.keys(groups).map(g=>'<div class="con-pane"><h4>'+esc(g)+'</h4><div>'+groups[g].join('')+'</div></div>').join('')
+  const numPanes = Object.keys(groups).map(g=>
+      '<div class="con-pane"><h4>'+esc(g)+'</h4><div>'+groups[g].join('')+'</div></div>').join('')
     || '<div class="con-pane"><h4>Numbers</h4><div class="con-none">Nothing yet. The first report fills this in.</div></div>';
+
+  // Upload freshness sits with the numbers, not buried in a tab, because a stale
+  // upload is the one thing that makes the numbers above it quietly wrong.
+  const upPane = '<div class="con-pane"><h4>Tradify uploads</h4><div>'+
+    ((imps||[]).length
+      ? imps.map(i=>{ const a = ageOf(i.added);
+          return '<div class="con-mrow"><span class="con-ml">'+esc(SRC_LABEL[i.source]||i.source)+
+                 '</span><span class="con-mv" style="font-size:11.5px;color:var(--'+
+                 (a[1]==='fresh'?'ok':a[1]==='old'?'warn':'alert')+')">'+esc(a[0])+'</span></div>'; }).join('')
+      : '<div class="con-none">Nothing uploaded yet. Jobs and quotes stay empty until you drop an export on the Home tab.</div>')+
+    '</div></div>';
+
+  const voicePane = '<div class="con-pane"><h4>Audio</h4>'+
+    '<div class="con-vrow"><span>Speak answers</span>'+
+      '<button class="con-sw" id="con-speak">Off</button></div>'+
+    '<div class="con-vrow"><span>Voice</span>'+
+      '<select class="con-vsel" id="con-voice"></select></div>'+
+    '<div class="con-vrow"><span>Microphone</span>'+
+      '<span id="con-micstate" style="color:var(--muted);letter-spacing:0;text-transform:none;font-family:var(--con-read);font-size:11.5px">Checking</span></div>'+
+    '</div>';
+
+  document.getElementById('con-left').innerHTML = numPanes + upPane + voicePane;
 
   const flags = ((nd&&nd.notes)||[]).slice(0,4).map(n=>
     '<div class="con-flag '+esc(n.severity)+'"><b>'+esc(n.title)+'</b>'+
@@ -1263,13 +1309,78 @@ async function conLoad(){
             (t.priority===1?'NOW':'--')+'</em><span>'+esc(t.title)+'</span></div>').join('')
         : '<div class="con-none">Nothing on the list.</div>')+'</div></div>'+
     '<div class="con-pane" style="flex:1 1 0"><h4>Transcript</h4>'+
-      '<div class="con-grow" id="con-log">'+(keep || '<div class="con-none">Nothing asked yet.</div>')+'</div></div>';
+      '<div class="con-grow" id="con-log">'+(keep || '<div class="con-none">Nothing asked yet.</div>')+'</div></div>'+
+    '<div class="con-pane" style="flex:0 0 auto"><h4>Latest reports</h4><div>'+
+      ((runs||[]).length
+        ? runs.slice(0,5).map(r=>'<div class="con-run"><span class="dot '+esc(r.status)+'"></span>'+
+            '<span class="rt">'+esc(r.title)+'</span><span class="rw">'+when(r.run_at)+'</span></div>').join('')
+        : '<div class="con-none">No reports yet.</div>')+'</div></div>';
 
   const oldest = (imps||[]).map(i=>i.added).sort()[0];
   document.getElementById('con-fresh').textContent =
     oldest ? 'Tradify uploaded '+ageOf(oldest)[0] : 'No Tradify upload yet';
   document.getElementById('con-stamp').textContent = 'Refreshes every two minutes';
+  conSpeakInit();
+  var ms = document.getElementById('con-micstate');
+  if(ms) ms.textContent = (window.SpeechRecognition || window.webkitSpeechRecognition)
+    ? 'Ready' : 'Not supported in this browser';
 }
+
+/* Speaking the answer is the difference between a dashboard you read and one you can
+   use with your hands full, which on a work site is most of the time. Off by default:
+   a screen in an office that talks unprompted is a screen somebody mutes forever. */
+var conSpeak = false, conVoice = null;
+function conSpeakInit(){
+  var btn = document.getElementById('con-speak'), sel = document.getElementById('con-voice');
+  if(!btn || !sel) return;
+  if(!('speechSynthesis' in window)){
+    btn.disabled = true; btn.textContent = 'N/A'; sel.disabled = true; return;
+  }
+  try{ conSpeak = localStorage.getItem('cc-speak') === '1'; }catch(e){}
+  btn.classList.toggle('on', conSpeak); btn.textContent = conSpeak ? 'On' : 'Off';
+  btn.addEventListener('click', function(){
+    conSpeak = !conSpeak;
+    try{ localStorage.setItem('cc-speak', conSpeak ? '1' : '0'); }catch(e){}
+    btn.classList.toggle('on', conSpeak); btn.textContent = conSpeak ? 'On' : 'Off';
+    if(!conSpeak && window.speechSynthesis) speechSynthesis.cancel();
+  });
+  function fill(){
+    var vs = speechSynthesis.getVoices().filter(function(v){ return /^en/i.test(v.lang); });
+    if(!vs.length) return;
+    var saved = null; try{ saved = localStorage.getItem('cc-voice'); }catch(e){}
+    sel.innerHTML = vs.map(function(v){
+      return '<option value="'+esc(v.name)+'"'+(v.name===saved?' selected':'')+'>'+esc(v.name)+'</option>';
+    }).join('');
+    conVoice = vs.filter(function(v){ return v.name === (saved || sel.value); })[0] || vs[0];
+  }
+  fill();
+  speechSynthesis.onvoiceschanged = fill;
+  sel.addEventListener('change', function(){
+    try{ localStorage.setItem('cc-voice', sel.value); }catch(e){}
+    conVoice = speechSynthesis.getVoices().filter(function(v){ return v.name === sel.value; })[0] || null;
+  });
+}
+function conSpeakOut(text){
+  if(!conSpeak || !('speechSynthesis' in window) || !text) return;
+  try{
+    speechSynthesis.cancel();
+    var u = new SpeechSynthesisUtterance(text);
+    if(conVoice) u.voice = conVoice;
+    u.rate = 1.02;
+    speechSynthesis.speak(u);
+  }catch(e){}
+}
+
+/* A blank text field is the fastest way to make somebody close a page, and these
+   double as a hint about what it can actually answer. */
+const CON_SUGGESTIONS = [
+  'Who owes us the most right now?',
+  'How is cash tracking against last week?',
+  'What should I chase today?',
+  'Are we quoting more or less than a month ago?',
+  'How old is my jobs data?',
+  'What finished last week but has not been invoiced?'
+];
 
 function consolePage(){
   if(!document.getElementById('orb')) return;
@@ -1279,11 +1390,18 @@ function consolePage(){
 
   const q = document.getElementById('con-q'), go = document.getElementById('con-go'),
         ans = document.getElementById('con-ans'), st = document.getElementById('con-state'),
-        sub = document.getElementById('con-sub'), mic = document.getElementById('con-mic');
+        sub = document.getElementById('con-sub'), mic = document.getElementById('con-mic'),
+        sugg = document.getElementById('con-sugg');
+
+  sugg.innerHTML = CON_SUGGESTIONS.map(t=>'<button type="button">'+esc(t)+'</button>').join('');
+  sugg.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{
+    q.value = b.textContent; send();
+  }));
 
   async function send(){
     const text = q.value.trim(); if(!text || conBusy) return;
     conBusy = true; go.disabled = true;
+    if(sugg) sugg.innerHTML = '';
     q.value = ''; conSay('you', text);
     st.textContent = 'Thinking'; sub.textContent = 'Working';
     ans.className = 'con-ans'; ans.textContent = '';
@@ -1295,6 +1413,7 @@ function consolePage(){
       ans.className = 'con-ans' + (r.ok?'':' err');
       ans.textContent = out;
       conSay('cc', out);
+      if(r.ok) conSpeakOut(out);
       st.textContent = r.ok ? 'Answered' : 'Could not answer';
     }catch(e){
       ans.className = 'con-ans err';
