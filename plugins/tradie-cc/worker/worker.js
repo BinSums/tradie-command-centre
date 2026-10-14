@@ -1613,7 +1613,10 @@ export default {
         status: 302,
         headers: {
           Location: "/",
-          "Set-Cookie": `cc_s=${await makeSession(env)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${30 * 24 * 3600}`,
+          // Secure only over https. The live dashboard always is; the laptop demo on
+          // http://127.0.0.1 is not, and Safari drops a Secure cookie there, so the
+          // password "works" and lands straight back on the sign-in page.
+          "Set-Cookie": `cc_s=${await makeSession(env)}; Path=/; HttpOnly;${url.protocol === "https:" ? " Secure;" : ""} SameSite=Lax; Max-Age=${30 * 24 * 3600}`,
         },
       });
     }
