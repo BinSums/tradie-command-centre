@@ -90,10 +90,17 @@ Their deployment config has to live somewhere that survives that.
 
 ```bash
 mkdir -p ~/.command-centre/worker
-cp "${CLAUDE_PLUGIN_ROOT}/worker/worker.js" "${CLAUDE_PLUGIN_ROOT}/worker/schema.sql" "${CLAUDE_PLUGIN_ROOT}/worker/wrangler.toml.template" ~/.command-centre/worker/
+cp "${CLAUDE_PLUGIN_ROOT}/worker/worker.js" "${CLAUDE_PLUGIN_ROOT}/worker/schema.sql" "${CLAUDE_PLUGIN_ROOT}/worker/brand.js" "${CLAUDE_PLUGIN_ROOT}/worker/wrangler.toml.template" ~/.command-centre/worker/
+ls "${CLAUDE_PLUGIN_ROOT}/brands/"
 cd ~/.command-centre/worker
 npx wrangler d1 create <business-slug>-cc-db
 ```
+
+**Their brand.** If `brands/` lists a pack whose `name` matches their business (for example
+`ecoscape` for Ecoscape Solutions), copy its `brand.js` over the default one in
+`~/.command-centre/worker/`, use its `name` as the business name, and tell them: "Your logo
+and colours are already in, nobody has to design anything." If there is no pack, the stock
+look is fine; offer `/tradie-cc:brand` later to pull their logo and colours off their website.
 
 Take the `database_id` from the output. Write `wrangler.toml` next to it from
 `wrangler.toml.template` using a python heredoc, filling `__WORKER_NAME__`,

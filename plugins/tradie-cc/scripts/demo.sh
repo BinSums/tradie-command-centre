@@ -3,7 +3,8 @@
 # someone before they commit to installing anything. Touches nothing in the cloud and
 # needs no Cloudflare account.
 #
-#   bash scripts/demo.sh      then http://127.0.0.1:8799  (password: demo)
+#   bash scripts/demo.sh            then http://127.0.0.1:8799  (password: demo)
+#   bash scripts/demo.sh ecoscape   the same, wearing that business's brand pack
 #
 # Everything it writes goes in a scratch copy, never into the plugin folder itself:
 # a local plugin install copies whatever is sitting there straight to the client.
@@ -12,10 +13,19 @@ set -euo pipefail
 SRC="$(cd "$(dirname "$0")/../worker" && pwd)"
 SEED="$(cd "$(dirname "$0")" && pwd)/demo-seed.sql"
 RUN="${TMPDIR:-/tmp}/cc-demo"
+BRAND="${1:-}"
+NAME="Demo Landscaping"
 
 rm -rf "$RUN"; mkdir -p "$RUN"
-cp "$SRC/worker.js" "$SRC/schema.sql" "$RUN/"
-sed -e 's/__WORKER_NAME__/cc-demo/' -e 's/__BUSINESS_NAME__/Demo Landscaping/' \
+cp "$SRC/worker.js" "$SRC/schema.sql" "$SRC/brand.js" "$RUN/"
+if [ -n "$BRAND" ]; then
+  PACK="$(cd "$(dirname "$0")/.." && pwd)/brands/$BRAND"
+  [ -f "$PACK/brand.js" ] || { echo "No brand pack at $PACK"; exit 1; }
+  cp "$PACK/brand.js" "$RUN/brand.js"
+  [ -f "$PACK/demo-seed.sql" ] && SEED="$PACK/demo-seed.sql"
+  NAME="$(sed -n 's/^ *name: *"\(.*\)",*$/\1/p' "$PACK/brand.js" | head -1)"
+fi
+sed -e 's/__WORKER_NAME__/cc-demo/' -e "s/__BUSINESS_NAME__/$NAME/" \
     -e 's|__TIMEZONE__|Australia/Sydney|' -e 's/__CURRENCY__/AUD/' \
     -e 's/__DB_NAME__/cc-demo-db/' -e 's/__DB_ID__/local-demo/' \
     "$SRC/wrangler.toml.template" > "$RUN/wrangler.toml"

@@ -20,6 +20,12 @@
  *   POST /ingest-kb        business context for the assistant
  */
 
+/* The brand pack: logo, colours and font for this one business. setup copies the
+   matching brands/<slug>/brand.js over the default one, which is empty, so a
+   business with no pack still gets the stock look. Nothing else reads it. */
+import BRAND from "./brand.js";
+
+
 const enc = new TextEncoder();
 
 /* ---------- crypto + session ---------- */
@@ -877,13 +883,58 @@ main > .card::before,.board .pane::before,.tiles .card::before{
    outside: a backtick in here would end the CSS template literal above. */
 const THEME_BOOT = '<script>(function(){try{var t=localStorage.getItem("cc-theme");if(t&&t!=="light")document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</scr'+'ipt>';
 
+/* Their colours over the stock ones. Light gets their primary, dark and the
+   console get the lighter tone so it still reads on near-black. Only keys the
+   pack actually sets are written, so a half-filled pack degrades to stock. */
+function brandHead() {
+  const b = BRAND || {};
+  const hex = (v) => (/^#[0-9a-fA-F]{3,8}$/.test(v || "") ? v : "");
+  const L = [], D = [], H = [];
+  if (hex(b.accent)) L.push("--accent:" + b.accent, "--ok:" + b.accent);
+  if (hex(b.ink)) L.push("--ink:" + b.ink);
+  if (hex(b.paper)) L.push("--bg:" + b.paper);
+  const lite = hex(b.accentOnDark) || hex(b.accent);
+  if (lite) { D.push("--accent:" + lite); H.push("--accent:" + lite); }
+  if (hex(b.hudBg)) H.push("--bg:" + b.hudBg);
+  if (hex(b.hudCard)) H.push("--card:" + b.hudCard);
+  let css = "";
+  // Light only, never bare :root: the dark themes set --ink and --bg on an
+  // attribute selector of the same weight, and this sheet comes later, so a bare
+  // :root here would paint near-black text onto the console.
+  if (L.length) css += ':root:not([data-theme="dark"]):not([data-theme="hud"]){' + L.join(";") + "}";
+  if (D.length) css += '[data-theme="dark"]{' + D.join(";") + "}";
+  if (H.length) css += '[data-theme="hud"]{' + H.join(";") + "}";
+  let font = "";
+  if (b.font && /^[A-Za-z0-9 ]+$/.test(b.font)) {
+    font = '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=' +
+      encodeURIComponent(b.font).replace(/%20/g, "+") + ':wght@400;600;700;800&display=swap">';
+    css += ':root{--con-read:"' + b.font + '",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}';
+  }
+  css += ".brand{display:flex;align-items:center;gap:10px}.brand img{height:34px;width:auto;display:block}" +
+    "form.login .brand{justify-content:center;flex-direction:column}form.login .brand img{height:72px;margin-bottom:6px}" +
+    '[data-theme="dark"] .brand img.lt,[data-theme="hud"] .brand img.lt{display:none}' +
+    '.brand img.dk{display:none}[data-theme="dark"] .brand img.dk,[data-theme="hud"] .brand img.dk{display:block}' +
+    "@media(max-width:560px){.brand img{height:24px}.hrow .sub{display:none}}";
+  return font + "<style>" + css + "</style>";
+}
+// The logo beside the name. A pack can carry a second, light logo for the dark
+// themes; without one the same logo shows on every theme.
+function brandMark(name) {
+  const b = BRAND || {};
+  if (!b.logo) return esc(name);
+  const two = !!b.logoOnDark;
+  return '<img src="/brand/logo" alt="" class="' + (two ? "lt" : "") + '">' +
+    (two ? '<img src="/brand/logo-dark" alt="" class="dk">' : "") +
+    (b.hideNameBesideLogo ? "" : "<span>" + esc(name) + "</span>");
+}
+
 function loginPage(env, error) {
   const c = cfg(env);
   return new Response(
     `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>${esc(c.name)}</title>` + THEME_BOOT + `<style>${CSS}</style></head><body>
+<title>${esc(c.name)}</title>` + THEME_BOOT + `<style>${CSS}</style>` + brandHead() + `</head><body>
 <form class="login" method="POST" action="/login"><div class="card">
-<div class="brand" style="text-align:center;margin-bottom:15px">${esc(c.name)}</div>
+<div class="brand" style="text-align:center;margin-bottom:15px">${brandMark(c.name)}</div>
 <input type="password" name="password" placeholder="Password" autofocus autocomplete="current-password">
 <button type="submit">Sign in</button>
 ${error ? `<div class="err">${esc(error)}</div>` : ""}
@@ -925,8 +976,8 @@ async function shell(env, url, solo) {
   const html = `<!doctype html><html><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <link rel="manifest" href="/manifest.webmanifest"><title>${esc(c.name)}</title>` + THEME_BOOT + `
-<style>${CSS}</style>${solo ? "<style>main{padding:0;max-width:none}</style>" : ""}</head><body>
-${solo ? "" : `<header><div class="hrow"><div class="brand">${esc(c.name)}</div>
+<style>${CSS}</style>` + brandHead() + `${solo ? "<style>main{padding:0;max-width:none}</style>" : ""}</head><body>
+${solo ? "" : `<header><div class="hrow"><div class="brand">${brandMark(c.name)}</div>
 <div class="seg" id="themes" role="group" aria-label="Theme">
 <button type="button" data-t="light">Light</button>
 <button type="button" data-t="dark">Dark</button>
@@ -1499,11 +1550,21 @@ export default {
 
     if (p === "/healthz") return new Response("ok");
 
+    // Public on purpose: the login page shows it before anyone has signed in.
+    if (p === "/brand/logo" || p === "/brand/logo-dark") {
+      const l = p === "/brand/logo" ? (BRAND || {}).logo : (BRAND || {}).logoOnDark;
+      if (!l || !l.b64) return new Response("not found", { status: 404 });
+      const bin = Uint8Array.from(atob(l.b64), (ch) => ch.charCodeAt(0));
+      return new Response(bin, { headers: { "content-type": l.type || "image/png", "cache-control": "public, max-age=86400" } });
+    }
+
     if (p === "/manifest.webmanifest") {
       const c = cfg(env);
       return J({
         name: c.name, short_name: c.name.split(" ")[0], start_url: "/", display: "standalone",
-        background_color: "#f6f6f3", theme_color: "#f6f6f3", icons: [],
+        background_color: "#f6f6f3", theme_color: (BRAND || {}).accent || "#f6f6f3",
+        icons: (BRAND || {}).logo && /png/.test((BRAND || {}).logo.type || "")
+          ? [{ src: "/brand/logo", sizes: "512x512", type: "image/png", purpose: "any" }] : [],
       });
     }
 
